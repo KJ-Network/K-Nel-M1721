@@ -69,6 +69,13 @@ config BFQ_GROUP_IOSCHED
 config BFQ_EXPORT_WEIGHTS
 	def_bool y if IOSCHED_BFQ && BROKEN
 
+config IOSCHED_ZEN
+	tristate "Zen I/O scheduler"
+	default y
+	---help---
+	  FCFS, dispatches are back-inserted, deadlines ensure fairness.
+	  Should work best with devices where there is no travel delay.
+
 choice
 	prompt "Default I/O scheduler"
 	default DEFAULT_CFQ
@@ -98,6 +105,9 @@ choice
 	config DEFAULT_FIOPS
 		bool "FIOPS" if IOSCHED_FIOPS=y
 
+	config DEFAULT_ZEN
+		bool "ZEN" if IOSCHED_ZEN=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -107,6 +117,7 @@ config DEFAULT_IOSCHED
 	default "bfq" if DEFAULT_BFQ
 	default "noop" if DEFAULT_NOOP
 	default "fiops" if DEFAULT_FIOPS
+	default "zen" if DEFAULT_ZEN
 
 endmenu
 
