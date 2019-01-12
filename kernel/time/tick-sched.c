@@ -172,7 +172,7 @@ static void tick_sched_handle(struct tick_sched *ts, struct pt_regs *regs)
 		 * expiration, make sure we don't bypass the next clock reprogramming
 		 * to the same deadline.
 		 */
-		ts->next_tick = 0;
+		ts->next_tick.tv64 = 0;
 	}
 #endif
 	update_process_times(user_mode(regs));
@@ -688,7 +688,7 @@ static void tick_nohz_restart(struct tick_sched *ts, ktime_t now)
 	 * Reset to make sure next tick stop doesn't get fooled by past
 	 * cached clock deadline.
 	 */
-	ts->next_tick = 0;
+	ts->next_tick.tv64 = 0;
 }
 
 static inline bool local_timer_softirq_pending(void)
@@ -798,14 +798,15 @@ static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
 	tick.tv64 = expires;
 
 	/* Skip reprogram of event if its not changed */
-	if (ts->tick_stopped && (expires == ts->next_tick)) {
+	if (ts->tick_stopped && (expires == ts->next_tick.tv64)) {
 		/* Sanity check: make sure clockevent is actually programmed */
-		if (tick == KTIME_MAX || ts->next_tick == hrtimer_get_expires(&ts->sched_timer))
+		if (tick.tv64 == KTIME_MAX ||
+			ts->next_tick.tv64 == hrtimer_get_expires(&ts->sched_timer).tv64)
 			goto out;
 
 		WARN_ON_ONCE(1);
-		printk_once("basemono: %llu ts->next_tick: %llu dev->next_event: %llu timer->active: %d timer->expires: %llu\n",
-			    basemono, ts->next_tick, dev->next_event,
+		printk_once("basemono: %llu ts->next_tick.tv64: %llu dev->next_event: %llu timer->active: %d timer->expires: %llu\n",
+			    basemono, ts->next_tick.tv64, dev->next_event,
 			    hrtimer_active(&ts->sched_timer), hrtimer_get_expires(&ts->sched_timer));
 	}
 
@@ -825,7 +826,7 @@ static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
 		trace_tick_stop(1, TICK_DEP_MASK_NONE);
 	}
 
-	ts->next_tick = tick;
+	ts->next_tick.tv64 = tick.tv64;
 
 	/*
 	 * If the expiration time == KTIME_MAX, then we simply stop
@@ -909,7 +910,7 @@ static bool can_stop_idle_tick(int cpu, struct tick_sched *ts)
 		 * Make sure the CPU doesn't get fooled by obsolete tick
 		 * deadline if it comes back online later.
 		 */
-		ts->next_tick = 0;
+		ts->next_tick.tv64 = 0;
 		return false;
 	}
 
@@ -1274,7 +1275,7 @@ static enum hrtimer_restart tick_sched_timer(struct hrtimer *timer)
 		}
 	}
 	else
-		ts->next_tick = 0;
+		ts->next_tick.tv64 = 0;
 
 	/* No need to reprogram if we are in idle or full dynticks mode */
 	if (unlikely(ts->tick_stopped))
