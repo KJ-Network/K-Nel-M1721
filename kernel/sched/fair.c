@@ -167,7 +167,9 @@ unsigned int sysctl_sched_capacity_margin_down = 1205; /* ~15% margin */
 #define capacity_margin sysctl_sched_capacity_margin
 
 #ifdef CONFIG_SCHED_WALT
-unsigned int sysctl_sched_min_task_util_for_boost_colocation;
+unsigned int sysctl_sched_min_task_util_for_boost_colocation = 51;
+#else
+unsigned int sysctl_sched_min_task_util_for_boost_colocation = 35;
 #endif
 static unsigned int __maybe_unused sched_small_task_threshold = 102;
 
