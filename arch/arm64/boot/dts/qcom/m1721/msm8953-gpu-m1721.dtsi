@@ -1,3 +1,20 @@
+&gpubw {
+	qcom,bw-tbl =
+		< 0    >, /*  off */
+		< 1611 >, /* 1. DDR:211.20 MHz BIMC: 105.60 MHz */
+		< 2124 >, /* 2. DDR:278.40 MHz BIMC: 139.20 MHz */
+		< 2929 >, /* 3. DDR:384.00 MHz BIMC: 192.00 MHz */
+		< 3222 >, /* 4. DDR:422.40 MHz BIMC: 211.20 MHz */
+		< 4248 >, /* 5. DDR:556.80 MHz BIMC: 278.40 MHz */
+		< 5126 >, /* 6. DDR:672.00 MHz BIMC: 336.00 MHz */
+		< 5859 >, /* 7. DDR:768.00 MHz BIMC: 384.00 MHz */
+		< 6152 >, /* 8. DDR:806.40 MHz BIMC: 403.20 MHz */
+		< 6445 >, /* 9. DDR:844.80 MHz BIMC: 422.40 MHz */
+		< 7104 >, /*10. DDR:931.20 MHz BIMC: 465.60 MHz */
+		< 7759 >, /*11. DDR:1017.00 MHz BIMC: 508.50 MHz */
+		< 9887 >; /*12. DDR:1296.00 MHz BIMC: 648.00 MHz */
+};
+
 &clock_gcc_gfx {
 	qcom,gfxfreq-corner =
 		 <         0   0 >,
@@ -15,6 +32,22 @@
 
 &msm_gpu {
 
+	qcom,msm-bus,num-cases = <13>;
+	qcom,msm-bus,vectors-KBps =
+		<26 512 0 0>,	     /*  off          */
+		<26 512 0 1689600>, /* 1. 211.20 MHz */
+		<26 512 0 2227200>, /* 2. 278.40 MHz */
+		<26 512 0 3072000>, /* 3. 384.00 MHz */
+		<26 512 0 3379200>, /* 4.  422.40 MHz */
+		<26 512 0 4454400>, /* 5. 556.80 MHz */
+		<26 512 0 5376000>, /* 6. 672.00 MHz */
+		<26 512 0 6144000>, /* 7. 768.00 MHz */
+		<26 512 0 6451200>, /* 8. 806.40 MHz */
+		<26 512 0 6758400>, /* 9. 844.80 MHz */
+		<26 512 0 7449600>, /*10. 931.20 MHz */
+		<26 512 0 8136000>, /*11. 1017.00 MHz */
+		<26 512 0 10368000>; /*12. 1296.00 MHz */
+
 	qcom,ca-target-pwrlevel = <5>;
 	qcom,initial-pwrlevel = <4>;
 	/delete-node/qcom,gpu-pwrlevels;
@@ -28,18 +61,18 @@
 		qcom,gpu-pwrlevel@0 {
 			reg = <0>;
 			qcom,gpu-freq = <750000000>;
-			qcom,bus-freq = <10>;
-			qcom,bus-min = <10>;
-			qcom,bus-max = <10>;
+			qcom,bus-freq = <12>;
+			qcom,bus-min = <12>;
+			qcom,bus-max = <12>;
 		};
 
 		/* TURBO LD0 */
 		qcom,gpu-pwrlevel@1 {
 			reg = <1>;
 			qcom,gpu-freq = <700000000>;
-			qcom,bus-freq = <10>;
-			qcom,bus-min = <10>;
-			qcom,bus-max = <10>;
+			qcom,bus-freq = <11>;
+			qcom,bus-min = <11>;
+			qcom,bus-max = <11>;
 		};
 
 		/* TURBO */
@@ -48,7 +81,7 @@
 			qcom,gpu-freq = <650000000>;
 			qcom,bus-freq = <10>;
 			qcom,bus-min = <10>;
-			qcom,bus-max = <10>;
+			qcom,bus-max = <11>;
 		};
 
 		/* NOM+ */
