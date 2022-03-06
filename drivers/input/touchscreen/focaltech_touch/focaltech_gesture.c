@@ -118,19 +118,8 @@ static struct attribute_group fts_gesture_group = {
 static ssize_t fts_gesture_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int count;
-	u8 val;
-	struct i2c_client *client = container_of(dev, struct i2c_client, dev);
-
-	mutex_lock(&fts_input_dev->mutex);
-	fts_i2c_read_reg(client, FTS_REG_GESTURE_EN, &val);
-	count = snprintf(buf, PAGE_SIZE, "Gesture Mode: %s\n",
-			fts_gesture_data.enabled ? "On" : "Off");
-	count += snprintf(buf + count, PAGE_SIZE - count,
-				"Reg(0xD0) = %d\n", val);
-	mutex_unlock(&fts_input_dev->mutex);
-
-	return count;
+	const char c = fts_gesture_data.enabled  ? '1' : '0';
+	return sprintf(buf, "%c\n", c);
 }
 
 /************************************************************************
