@@ -3648,6 +3648,22 @@ static const struct alg_test_desc alg_test_descs[] = {
 			}
 		}
 	}, {
+		.alg = "lzo-rle",
+		.test = alg_test_comp,
+		.fips_allowed = 1,
+		.suite = {
+			.comp = {
+				.comp = {
+					.vecs = lzorle_comp_tv_template,
+					.count = LZORLE_COMP_TEST_VECTORS
+				},
+				.decomp = {
+					.vecs = lzorle_decomp_tv_template,
+					.count = LZORLE_DECOMP_TEST_VECTORS
+				}
+			}
+		}
+	}, {
 		.alg = "md4",
 		.test = alg_test_hash,
 		.suite = {
