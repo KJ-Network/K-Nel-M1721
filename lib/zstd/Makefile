@@ -11,6 +11,8 @@
 obj-$(CONFIG_ZSTD_COMPRESS) += zstd_compress.o
 obj-$(CONFIG_ZSTD_DECOMPRESS) += zstd_decompress.o
 
+ldflags-y += --allow-multiple-definition
+
 zstd_compress-y := \
 		zstd_compress_module.o \
 		common/debug.o \
