@@ -862,7 +862,7 @@ static int z_erofs_decompress_pcluster(struct super_block *sb,
 		if (nr_pages > Z_EROFS_VMAP_GLOBAL_PAGES)
 			gfp_flags |= __GFP_NOFAIL;
 
-		pages = kvmalloc_array(nr_pages, sizeof(struct page *),
+		pages = kmalloc_array(nr_pages, sizeof(struct page *),
 				       gfp_flags);
 
 		/* fallback to global pagemap for the lowmem scenario */
