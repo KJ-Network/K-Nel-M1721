@@ -552,9 +552,9 @@ bool mcharger_thread_timeout;
 struct hrtimer mcharger_kthread_timer;
 struct wakeup_source mcharger_thread_ws;
 struct smbchg_chip *g_tmp_chip;
-bool mchg_parallel_enable;
-bool mcharger_is_plus;
-int temp_det_notify_ms_i;
+bool mchg_parallel_enable = false;
+bool mcharger_is_plus = false;
+int temp_det_notify_ms_i = false;
 int temp_det_notify_ms = 5000;
 int batt_good_fcc_tmp = 3400;
 
@@ -8135,10 +8135,10 @@ int mcharger_thread(void *x) {
 		smbchg_read(g_tmp_chip, &val, g_tmp_chip->bat_if_base + RT_STS, 1);
 		smbchg_read(g_tmp_chip, &val2, g_tmp_chip->usb_chgpth_base + RT_STS, 1);
 
-		batt_cold = !!(val & COLD_BAT_HARD_BIT);
-		batt_hot = !!(val & HOT_BAT_HARD_BIT);
-		usb_ov_det = !!(val2 & USBIN_OV_BIT);
-		timer_expired = !!(val2 & USBIN_LV);
+		batt_cold = val & COLD_BAT_HARD_BIT;
+		batt_hot = val & HOT_BAT_HARD_BIT;
+		usb_ov_det = val2 & USBIN_OV_BIT;
+		timer_expired = val2 & USBIN_LV;
 
 		if (batt_hot || batt_cold || usb_ov_det | timer_expired) {
 			if (mcharger_p20_get_is_enable() && mcharger_p20_get_is_connect())
