@@ -74,6 +74,9 @@
 			qcom,precharging-timeout-mins = <48>;
 			qcom,charging-timeout-mins = <768>;
 			qcom,parallel-en-gpio = <&pmi8950_gpios 2 0>;
+			qcom,parallel-allowed-lowering-ma = <500>;
+			qcom,parallel-usb-9v-min-current-ma = <900>;
+			qcom,parallel-usb-min-current-ma = <1400>;
 			qcom,vchg_sns-vadc = <&pmi8950_vadc>;
 			qcom,usbchg_temp-vadc = <&pm8953_vadc>;
 			qcom,board_temp-vadc = <&pm8953_vadc>;
