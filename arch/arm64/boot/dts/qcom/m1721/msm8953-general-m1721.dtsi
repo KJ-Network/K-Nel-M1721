@@ -86,6 +86,7 @@
 			qcom,board_temp-adc-channel-id = <19>;
 			qcom,charge-unknown-battery;
 			qcom,override-usb-current;
+			qcom,battery-data = <&qrd_batterydata>;
 
 			/delete-property/ qcom,autoadjust-vfloat;
 			/delete-property/ qcom,external-typec;
@@ -112,6 +113,7 @@
 			qcom,hot-bat-decidegc = <550>;
 			qcom,bad-battery-detection-enable;
 			qcom,ext-sense-type;
+			qcom,battery-data = <&qrd_batterydata>;
 		};
 	};
 
