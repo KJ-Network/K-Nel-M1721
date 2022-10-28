@@ -39,7 +39,6 @@
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/batterydata-lib.h>
 #include <linux/of_batterydata.h>
-#include <linux/msm_bcl.h>
 #include <linux/ktime.h>
 #include <linux/extcon.h>
 #include <linux/pmic-voter.h>
@@ -3141,12 +3140,7 @@ static int smbchg_calc_max_flash_current(struct smbchg_chip *chip)
 		return 0;
 	}
 
-	rc = msm_bcl_read(BCL_PARAM_CURRENT, &ibat_now);
-	if (rc) {
-		pr_smb(PR_STATUS, "BCL current read failed: %d\n", rc);
-		return 0;
-	}
-
+	ibat_now = get_prop_batt_current_now(chip);
 	rbatt_uohm = esr_uohm + chip->rpara_uohm + chip->rslow_uohm;
 	/*
 	 * Calculate the maximum current that can pulled out of the battery
@@ -7780,7 +7774,7 @@ int smbchg_get_vchar_usbin(void) {
 
 static int smbchg_get_usbchg_temp(struct smbchg_chip *chip)
 {
-	int rc;
+	int rc = -EINVAL;
 	struct qpnp_vadc_result usbchg_temp_result;
 
 	if (chip->usbchg_temp_vadc_dev
@@ -7796,10 +7790,15 @@ static int smbchg_get_usbchg_temp(struct smbchg_chip *chip)
 
 		pr_smb(PR_MISC, "get_usbchg_temp %d, %lld\n",
 				usbchg_temp_result.adc_code, usbchg_temp_result.physical);
-		return usbchg_temp_result.physical / 1000;
+
+		rc = usbchg_temp_result.physical / 1000;
 	}
 
-	return -EINVAL;
+	// Workaround for chinese charging boards
+	if (rc < 0)
+		rc = USBCHG_DEFAULT_TEMP;
+
+	return rc;
 }
 
 #define BOARD_TEMP_DEFAULT_TEMP 25
@@ -7855,7 +7854,7 @@ static int usbchg_thermal_check_protect(struct smbchg_chip *chip) {
 	pr_smb(PR_MISC, "good fcc temp %d, notify ms %d\n",
 			batt_good_fcc_tmp, temp_det_notify_ms);
 
-	if (!(chip->battery_debug_temp & 0x80000000)) {
+	if (chip->battery_debug_temp > 0) {
 		bat_fcc = 1000;
 		if (chip->battery_debug_temp > 99) {
 			if (chip->battery_debug_temp > 449) {
@@ -7886,7 +7885,7 @@ static int usbchg_thermal_check_protect(struct smbchg_chip *chip) {
 	}
 
 	if (usbchg_lcd_is_on()) {
-		if (!(chip->battery_debug_temp & 0x80000000)) {
+		if (chip->battery_debug_temp > 0) {
 			lcd_current = 1000;
 			if (chip->battery_debug_temp > 99) {
 				if (chip->battery_debug_temp > 379 && chip->battery_debug_temp > 449) {
@@ -8117,9 +8116,7 @@ void mcharger_is_plus_set(bool is_plus) {
 int mcharger_thread(void *x) {
 	ktime_t t;
 	u8 val, val2;
-
 	bool batt_hot, batt_cold, usb_ov_det, timer_expired;
-
 	t.tv64 = 3000000000;
 
 	while (true) {
@@ -8140,7 +8137,7 @@ int mcharger_thread(void *x) {
 		usb_ov_det = val2 & USBIN_OV_BIT;
 		timer_expired = val2 & USBIN_LV;
 
-		if (batt_hot || batt_cold || usb_ov_det | timer_expired) {
+		if (batt_hot || batt_cold || usb_ov_det || timer_expired) {
 			if (mcharger_p20_get_is_enable() && mcharger_p20_get_is_connect())
 				mcharger_p20_reset_ta_vchr();
 			if (mcharger_p10_get_is_enable() && mcharger_p10_get_is_connect())
