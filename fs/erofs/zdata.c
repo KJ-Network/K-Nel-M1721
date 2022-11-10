@@ -7,6 +7,7 @@
 #include "compress.h"
 #include <linux/overflow.h>
 #include <linux/prefetch.h>
+#include <linux/vmalloc.h>
 
 #include <trace/events/erofs.h>
 
@@ -857,13 +858,15 @@ static int z_erofs_decompress_pcluster(struct super_block *sb,
 		   mutex_trylock(&z_pagemap_global_lock)) {
 		pages = z_pagemap_global;
 	} else {
-		gfp_t gfp_flags = GFP_KERNEL;
-
-		if (nr_pages > Z_EROFS_VMAP_GLOBAL_PAGES)
-			gfp_flags |= __GFP_NOFAIL;
-
 		pages = kmalloc_array(nr_pages, sizeof(struct page *),
-				       gfp_flags);
+				       GFP_KERNEL);
+
+		if (!pages) 
+			pages = vmalloc(nr_pages * sizeof(struct page *));
+
+		if (!pages && nr_pages > Z_EROFS_VMAP_GLOBAL_PAGES)
+			pages = kmalloc_array(nr_pages, sizeof(struct page *),
+				       __GFP_NOFAIL);
 
 		/* fallback to global pagemap for the lowmem scenario */
 		if (!pages) {
