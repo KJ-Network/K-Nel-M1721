@@ -392,6 +392,7 @@ static struct irq_desc *alloc_desc(int irq, int node, unsigned int flags,
 	desc_set_defaults(irq, desc, node, affinity, owner);
 	irqd_set(&desc->irq_data, flags);
 	kobject_init(&desc->kobj, &irq_kobj_type);
+	sbalance_desc_add(desc);
 
 	return desc;
 
@@ -422,6 +423,7 @@ static void free_desc(unsigned int irq)
 {
 	struct irq_desc *desc = irq_to_desc(irq);
 
+	sbalance_desc_del(desc);
 	unregister_irq_proc(irq, desc);
 
 	/*
