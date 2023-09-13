@@ -158,7 +158,7 @@ static int move_irq_to_cpu(struct bal_irq *bi, int cpu)
 	if (!ret) {
 		/* Update the old interrupt count using the new CPU */
 		bi->old_nr = *per_cpu_ptr(desc->kstat_irqs, cpu);
-		pr_debug("Moved IRQ%d (CPU%d -> CPU%d)\n",
+		pr_info("Moved IRQ%d (CPU%d -> CPU%d)\n",
 			 irq_desc_get_irq(desc), prev_cpu, cpu);
 	}
 	return ret;
