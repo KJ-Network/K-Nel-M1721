@@ -1,0 +1,471 @@
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
+
+/ {
+	qrd_batterydata: qcom,battery-data {
+		qcom,batt-id-range-pct = <24>;
+
+		#include "msm8953-batterydata-m1721.dtsi"
+	};
+
+};
+
+&firmware {
+	android {
+		/delete-node/ vbmeta;
+
+		fstab {
+			vendor {
+				dev = "/dev/block/platform/soc/7824900.sdhci/by-name/custom";
+				fsmgr_flags = "wait";
+			};
+
+			system {
+				compatible = "android,system";
+				dev = "/dev/block/platform/soc/7824900.sdhci/by-name/system";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "okay";
+			};
+		};
+	};
+};
+
+&spmi_bus {
+	qcom,pm8953@0 {
+		qcom,power-on@800 {
+			qcom,pon_1 {
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <0>;
+				qcom,s2-type = <7>;
+			};
+
+			qcom,pon_3 {
+				qcom,pon-type = <3>;
+				qcom,pull-up = <1>;
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <2000>;
+				qcom,s2-type = <7>;
+			};
+		};
+
+		/delete-node/ qcom,pm8953_typec@bf00;
+	};
+
+	qcom,pmi8950@2 {
+		qpnp_smbcharger: qcom,qpnp-smbcharger {
+			qcom,float-voltage-mv = <4400>;
+			qcom,resume-delta-mv = <100>;
+			qcom,thermal-mitigation = <3000 2500 2000 1500 1000 500 0>;
+			qcom,precharging-timeout-mins = <48>;
+			qcom,charging-timeout-mins = <768>;
+			qcom,parallel-en-gpio = <&pmi8950_gpios 2 0>;
+			qcom,vchg_sns-vadc = <&pmi8950_vadc>;
+			qcom,usbchg_temp-vadc = <&pm8953_vadc>;
+			qcom,board_temp-vadc = <&pm8953_vadc>;
+			qcom,vchg-adc-channel-id = <3>;
+			qcom,vusbin-adc-channel-id = <0>;
+			qcom,usbchg_temp-adc-channel-id = <17>;
+			qcom,board_temp-adc-channel-id = <19>;
+			qcom,charge-unknown-battery;
+			qcom,override-usb-current;
+
+			/delete-property/ qcom,autoadjust-vfloat;
+			/delete-property/ qcom,external-typec;
+			/delete-property/ qcom,typec-psy-name;
+		};
+
+		qcom_fg: qcom,fg {
+			qcom,resume-soc-raw = <254>;
+			qcom,resume-soc = <99>;
+			qcom,fg-iterm-ma = <290>;
+			qcom,fg-chg-iterm-ma = <220>;
+			qcom,fg-cutoff-voltage-mv = <3320>;
+			qcom,fg-slope-limit-high-temp-chg = <2>;
+			qcom,fg-slope-limit-high-temp-dischg = <1>;
+			qcom,fg-slope-limit-low-temp-chg = <2>;
+			qcom,fg-slope-limit-low-temp-dischg = <1>;
+			qcom,fg-control-slope-limiter;
+			qcom,vbat-estimate-diff-mv = <300>;
+			qcom,hold-soc-while-full;
+			qcom,thermal-coefficients = [da 86 f0 50 08 3c];
+			qcom,cold-bat-decidegc = <0xffffff9c>; /* -99 */
+			qcom,cool-bat-decidegc = <0>;
+			qcom,warm-bat-decidegc = <550>;
+			qcom,hot-bat-decidegc = <550>;
+			qcom,bad-battery-detection-enable;
+			qcom,ext-sense-type;
+		};
+	};
+
+	qcom,pmi8950@3 {
+		labibb: qpnp-labibb-regulator {
+			status = "okay";
+		};
+
+		wled: qcom,leds@d800 {
+			/delete-property/ qcom,en-ext-pfet-sc-pro;
+		};
+	};
+};
+
+&pm8953_gpios {
+    gpio@c100 {
+        reg = <0xc100 0x100>;
+        qcom,pin-num = <2>;
+        qcom,mode = <0>;
+        qcom,pull = <0>;
+        qcom,vin-sel = <2>;
+        qcom,src-sel = <0>;
+        qcom,master-en = <1>;
+        qcom,out-strength = <3>;
+        qcom,output-type = <0>;
+        status = "okay";
+    };
+    
+    gpio@c000 {
+        reg = <0xc000 0x100>;
+        qcom,pin-num = <1>;
+        qcom,mode = <1>;
+        qcom,pull = <5>;
+        qcom,vin-sel = <0>;
+        qcom,src-sel = <2>;
+        qcom,master-en = <1>;
+        qcom,out-strength = <2>;
+        status = "okay";
+    };
+};
+
+&pmi8950_gpios {
+    gpio@c100 {
+        reg = <0xc100 0x100>;
+        qcom,pin-num = <2>;
+        qcom,mode = <2>;
+        qcom,output-type = <0>;
+        qcom,invert = <0>;
+        qcom,pull = <4>;
+        qcom,out-strength = <3>;
+        qcom,master-en = <1>;
+        status = "okay";
+    };
+};
+
+&pmi_haptic {
+	status = "okay";
+	qcom,vmax-mv = <3400>;
+	qcom,play-rate-us = <6667>;
+	wf_0 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 3e 3e 3e];
+		qcom,wf-play-rate-us = <6667>;
+	};
+	wf_1 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 7e 7e 02 02 02 02 02 02];
+		qcom,wf-play-rate-us = <7143>;
+	};
+	wf_2 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 7e 7e];
+		qcom,wf-play-rate-us = <4000>;
+	};
+	wf_3 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 7e 7e 7e];
+		qcom,wf-play-rate-us = <6667>;
+	};
+	wf_4 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 7e 7e];
+		qcom,wf-play-rate-us = <5000>;
+	};
+	wf_5 {
+		qcom,wf-vmax-mv = <3300>;
+		qcom,wf-pattern = [7e 7e 7e 7e];
+		qcom,wf-play-rate-us = <6667>;
+	};
+};
+
+&soc {
+	apps_iommu: qcom,iommu@1e00000 {
+		qcom,no-aarch64;
+	};
+
+	/delete-node/ gpio_keys;
+	gpio_keys {
+		compatible = "gpio-keys";
+		label = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_key_active>;
+
+		vol_up {
+			label = "volume_up";
+			gpios = <&tlmm 85 0x1>;
+			linux,input-type = <1>;
+			linux,code = <115>;
+			debounce-interval = <15>;
+			linux,can-disable;
+			gpio-key,wakeup;
+		};
+
+		home {
+			label = "home";
+			gpios = <&tlmm 141 0x1>;
+			linux,input-type = <1>;
+			linux,code = <102>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
+	};
+
+	hall {
+		compatible = "hall-switch";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hall_sensor_int_default>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <13 0x2003>;
+		vddio-supply = <&pm8953_l6>;
+		linux,gpio-int = <&tlmm 13 1>;
+		linux,wakeup;
+		linux,min-uv = <1650000>;
+		linux,max-uv = <3300000>;
+	};
+
+	spi@78b5000 {
+		status = "ok";
+
+        goodix_fp@0 {
+            compatible = "goodix,fingerprint";
+			status = "ok";
+            reg = <0x0>;
+
+            interrupt-parent = <&tlmm>;
+            interrupts = <48 1>;
+            goodix,gpio_irq = <&tlmm 48 0>;
+            goodix,gpio_reset = <&tlmm 140 0>;
+            goodix,gpio_pwr = <&tlmm 134 0>;
+            spi-max-frequency = <8000000>;
+        };
+    };
+
+	i2c@78b6000 {
+        status = "ok";
+
+        sm5424-charger@49 {
+            compatible = "qcom,sm5424-charger";
+            reg = <0x49>;
+            status = "ok";
+            
+            qcom,float-voltage-mv = <4400>;
+            qcom,iterm-ma = <300>;
+            qcom,nINT-gpio = <9>;
+            qcom,parallel-charger;
+            qcom,recharge-mv = <100>;
+            qcom,switch-freq = <2>;
+        };
+    };
+
+	i2c@78b7000 { /* BLSP1 QUP3 */
+		/* Required for very chinese touchscreens */
+		qcom,disable-dma;
+		
+		focaltech@38 {
+            reg = <0x38>;
+            compatible = "focaltech,fts";
+
+            interrupt-parent = <&tlmm>;
+            interrupts = <65 0x2>;
+            vdd-supply = <&pm8953_l10>;
+            vcc_i2c-supply = <&pm8953_l6>;
+
+            focaltech,display-coords = <0 0 1080 1920>;
+            focaltech,max-touch-number = <10>;
+            focaltech,wakeup-gestures-en;
+            focaltech,reset-gpio = <&tlmm 64 0x0>;
+            focaltech,irq-gpio = <&tlmm 65 0x2008>;
+            
+            /* pins used by touchscreen */
+            pinctrl-names = "pmx_ts_active", 
+                            "pmx_ts_suspend",
+                            "pmx_ts_release";
+            pinctrl-0 = <&ts_int_active &ts_reset_active>;
+            pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+            pinctrl-2 = <&ts_release>;
+        };
+
+		goodix_ts@5d {
+			compatible = "goodix,gt9xx";
+			reg = <0x5d>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <65 0x2008>;
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend",
+					"pmx_ts_release";
+			pinctrl-0 = <&ts_int_active &ts_reset_active>;
+			pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+			pinctrl-2 = <&ts_release>;
+			vdd_ana-supply = <&pm8953_l10>;
+			vcc_i2c-supply = <&pm8953_l6>;
+			goodix,rst-gpio = <&tlmm 64 0x0>;
+			goodix,irq-gpio = <&tlmm 65 0x2008>;
+			goodix,cfg-group0 = <0x46380480 0x70a3d00 0x1c52808 0x50320305 0x4022 0x617 0x191e1487 0x27cc1f21 0x43067c06 0x19b3311 0x0 0x0 0x431c 0x5a858084 0x41e0804 0x801f0065 0x28005232 0x433f00 0x37500037 0x0 0x0 0x90 0x1000000 0xff6f 0x330028 0x0 0xa4600 0x28 0x11121314 0x15161710 0xf0e0d0c 0xb0a0908 0x7060504 0x3020100 0xffffffff 0xffff0a08 0x6050402 0x1e1f20 0x22242829 0xffffff78 0x11000000 0x88701200 0x0 0x1e5a0f66 0x55000020 0x2201155 0x0 0x0 0x3 0x32000501 0xac800 0x0 0x0 0x0 0x0 0x0 0x2301>;
+		};
+	};
+
+	i2c@7af6000 { /* BLSP2 QUP2 */
+		qcom,disable-dma;
+
+        aw36413_flash: qcom,led-flash@6b {
+            cell-index = <0x0>;
+            reg = <0x6b>;
+            qcom,slave-id = <0xd6 0x0 0x36>;
+            compatible = "awinic,aw36413";
+            label = "awinic,aw36413";
+            qcom,flash-type = <1>;
+            gpios = <&tlmm 95 0>,
+					<&tlmm 93 0>, 
+					<&tlmm 96 0>;
+            qcom,gpio-flash-en = <0>;
+            qcom,gpio-flash-en-2 = <1>;
+            qcom,gpio-flash-strobe = <2>;
+            qcom,gpio-req-tbl-num = <0 1 2>;
+            qcom,gpio-req-tbl-flags = <0 0 0>;
+            qcom,gpio-req-tbl-label = "FLASH_EN", "FLASH_EN_2", "FLASH_STROBE";
+        };
+        
+        aw2013@45 {
+            compatible = "awinic,aw2013";
+            reg = <0x45>;
+            vdd-supply = <&pm8953_l10>;
+            vcc-supply = <&pm8953_l6>;
+
+            aw2013,red {
+                aw2013,name = "mx-led";
+                aw2013,id = <0x0>;
+                aw2013,max-brightness = <0xff>;
+                aw2013,max-current = <0x3>;
+                aw2013,rise-time-ms = <0x2>;
+                aw2013,hold-time-ms = <0x2>;
+                aw2013,fall-time-ms = <0x2>;
+                aw2013,off-time-ms = <0x2>;
+            };
+        };
+    };
+
+	i2c@7af8000 { /* BLSP2 QUP4 */
+		status = "ok";
+
+		// For stability...?
+		qcom,disable-dma;
+
+        cs35l35@40 {
+			compatible = "cirrus,cs35l35";
+			reg = <0x40>;
+			reset-gpio = <&tlmm 91 0>;
+			irq-gpio = <&tlmm 90 1>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <90 8>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&cs35l35_default &cs35l35_irq_default>;
+			cirrus,audio-channel = <0>;
+			cirrus,boost-ind-nanohenry = <1200>;
+			status = "ok";
+
+			cirrus,classh-internal-algo {
+				cirrus,classh-bst-overide;
+				cirrus,classh-bst-max-limit = <0x1>;
+				cirrus,classh-mem-depth = <0x1>;
+				cirrus,classh-release-rate = <0x3>;
+				cirrus,classh-headroom = <0x8>;
+				cirrus,classh-wk-fet-disable = <0x0>;
+				cirrus,classh-wk-fet-delay = <0x4>;
+				cirrus,classh-wk-fet-thld = <0x1>;
+				cirrus,classh-vpch-auto = <0x1>;
+				cirrus,classh-vpch-rate = <0x2>;
+				cirrus,classh-vpch-man = <0x5>;
+			};
+
+			cirrus,monitor-signal-format {
+				cirrus,imon = /bits/ 8 <0x03 0x00 0x01>;
+				cirrus,vmon = /bits/ 8 <0x03 0x00 0x00>;
+				cirrus,vpmon = /bits/ 8 <0x00 0x04 0x00>;
+				cirrus,vbstmon = /bits/ 8 <0x00 0x04 0x01>;
+				cirrus,vpbrstat = /bits/ 8 <0x00 0x04 0x00>;
+				cirrus,zerofill = /bits/ 8 <0x00 0x00 0x00>;
+			};
+		};
+	};
+
+	/delete-node/ qseecom@85b00000;
+
+	usb3: ssusb@7000000 {
+		vbus_dwc3-supply = <&smbcharger_charger_otg>;
+		qcom,detect-dpdm-floating;
+	};
+
+	qusb_phy: qusb@79000 {
+		qcom,qusb-phy-init-seq = <0xF8 0x80
+					0x53 0x84 /* changed by xiaomi */
+					0x93 0x88 /* changed by xiaomi */
+					0xCf 0x8C /* changed by xiaomi */
+					0x14 0x9C
+					0x30 0x08
+					0x79 0x0C
+					0x21 0x10
+					0x00 0x90
+					0x9F 0x1C
+					0x00 0x18>;
+	};
+
+	sn_fuse: snfuse@0xa4128 {
+		compatible = "qcom,sn-fuse";
+		reg = <0xa4128 0x4>;
+		reg-names = "sn-base";
+	};
+
+	qcom_seecom: qseecom@84a00000 { /* renamed from caf qseecom@85b00000 */
+		compatible = "qcom,qseecom";
+		reg = <0x84a00000 0x1900000>; /* changed by xiaomi */
+		reg-names = "secapp-region";
+		qcom,hlos-num-ce-hw-instances = <1>;
+		qcom,hlos-ce-hw-instance = <0>;
+		qcom,qsee-ce-hw-instance = <0>;
+		qcom,disk-encrypt-pipe-pair = <2>;
+		qcom,support-fde;
+		qcom,msm-bus,name = "qseecom-noc";
+		qcom,msm-bus,num-cases = <4>;
+		qcom,msm-bus,num-paths = <1>;
+		qcom,support-bus-scaling;
+		qcom,msm-bus,vectors-KBps =
+				<55 512 0 0>,
+				<55 512 0 0>,
+				<55 512 120000 1200000>,
+				<55 512 393600 3936000>;
+		clocks = <&clock_gcc clk_crypto_clk_src>,
+					<&clock_gcc clk_gcc_crypto_clk>,
+					<&clock_gcc clk_gcc_crypto_ahb_clk>,
+					<&clock_gcc clk_gcc_crypto_axi_clk>;
+		clock-names = "core_clk_src", "core_clk",
+						"iface_clk", "bus_clk";
+		qcom,ce-opp-freq = <100000000>;
+	};
+};
+
+&thermal_zones {
+	xo-therm-adc {
+		polling-delay = <1000>;
+	};
+};
