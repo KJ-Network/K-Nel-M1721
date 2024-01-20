@@ -8,8 +8,8 @@
 * 目标机型：魅蓝Note6
 * 初始源码来源：@Bilibili极吧弯
 * 已实现功能：
-* 1. KernelSU
-* 2. 等等。。。
+* 1.KernelSU
+* 2.等等。。。
 * 将要更新的功能：
 * 1.KVM
 * 2.lxc-docker
