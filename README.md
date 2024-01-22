@@ -1,6 +1,6 @@
 # K-Nel-M1721
 ![Alt text](/logo.png?raw=true "A Custom Kernel Base For Meizu M6 Note")
-* 本仓库为K-Nel的魅蓝Note6版仓库
+* 本仓库为K-Nel M1721的仓库
 * 该仓库仅存储为魅蓝Note6编译的K-Nel内核
 * 编译者：科家（KNKJ55）
 * 编译使用设备：魅蓝Note6
