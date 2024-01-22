@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "dsi-panel-ili7807d-txdkj-1080p-video.dtsi"
+#include "dsi-panel-hx8399c-holitech-1080p-video.dtsi"
+#include "dsi-panel-hx8399c-tcl-1080p-video.dtsi"
+
+&dsi_hx8399c_tcl_1080p {
+    qcom,mdss-dsi-panel-timings-phy-v2 = <0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x23190708 0x50304a0>;
+    qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+
+&dsi_hx8399c_holitech_1080p {
+    qcom,mdss-dsi-panel-timings-phy-v2 = <0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x23190708 0x50304a0>;
+    qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+
+&dsi_ili7807d_txdkj_1080p {
+    qcom,mdss-dsi-panel-timings-phy-v2 = <0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x231e0709 0x50304a0 0x23190708 0x50304a0>;
+    qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+
+&mdss_dsi0 {
+	qcom,dsi-pref-prim-pan = <&dsi_hx8399c_tcl_1080p>;
+	qcom,dsi-pref-sub-pan = <&dsi_ili7807d_txdkj_1080p>;
+};
+
+&mdss_dsi0_pll {
+	/delete-property/ qcom,dsi-pll-ssc-en;
+	/delete-property/ qcom,dsi-pll-ssc-mode;
+};
+
+&mdss_dsi1_pll {
+	/delete-property/ qcom,dsi-pll-ssc-en;
+	/delete-property/ qcom,dsi-pll-ssc-mode;
+};
+
+&mdss_te_active {
+	mux {
+		function = "gpio";
+	};
+};
+
+&mdss_te_suspend {
+	mux {
+		function = "gpio";
+	};
+};

@@ -1,0 +1,76 @@
+/* Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&mdm3 {
+	pinctrl-names = "default", "mdm_active", "mdm_suspend";
+	pinctrl-0 = <&ap2mdm_pon_reset_default>;
+	pinctrl-1 = <&ap2mdm_active &mdm2ap_active>;
+	pinctrl-2 = <&ap2mdm_sleep &mdm2ap_sleep>;
+	interrupt-map = <0 &tlmm 20 0x3
+			1 &tlmm 21 0x3>;
+	qcom,mdm2ap-errfatal-gpio = <&tlmm 20 0x00>;
+	qcom,ap2mdm-errfatal-gpio = <&tlmm 23 0x00>;
+	qcom,mdm2ap-status-gpio   = <&tlmm 22 0x00>;
+	qcom,ap2mdm-status-gpio   = <&tlmm 21 0x00>;
+	qcom,ap2mdm-soft-reset-gpio = <&pm8998_gpios 10 0>;
+	qcom,mdm-link-info = "0304_00.01.00";
+	status = "ok";
+};
+
+&pm8998_gpios {
+	ap2mdm_pon_reset {
+		ap2mdm_pon_reset_default: ap2mdm_pon_reset_default {
+			/* MDM PON conrol*/
+			pins = "gpio10";
+			function = "normal";
+			power-source = <0>;
+		};
+	};
+};
+
+&pil_modem {
+	status = "disabled";
+};
+
+&pcie0_wake_default {
+	config {
+	       /delete-property/ bias-pull-down;
+	};
+};
+
+&led_flash_rear {
+	status = "disabled";
+};
+
+&led_flash_front {
+	status = "disabled";
+};
+
+&ois_rear {
+	status = "disabled";
+};
+
+&eeprom_rear {
+	status = "disabled";
+};
+
+&eeprom_rear_aux {
+	status = "disabled";
+};
+
+&eeprom_front {
+	status = "disabled";
+};
+
+&wil6210 {
+	status = "disabled";
+};

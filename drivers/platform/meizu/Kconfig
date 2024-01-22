@@ -1,0 +1,6 @@
+# Meizu configuration options
+config MEIZU_HW
+	bool "IOCTL for Meizu libs"
+	help
+	  Enable kernel meizu_hw driver to get HW info
+
