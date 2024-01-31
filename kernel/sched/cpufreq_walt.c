@@ -181,15 +181,6 @@ static inline bool use_pelt(void)
 #endif
 }
 
-static inline bool conservative_pl(void)
-{
-#ifdef CONFIG_SCHED_WALT
-	return sysctl_sched_conservative_pl;
-#else
-	return false;
-#endif
-}
-
 static bool waltgov_up_down_rate_limit(struct waltgov_policy *wg_policy, u64 time,
 				     unsigned int next_freq)
 {
@@ -524,7 +515,7 @@ unsigned long walt_cpu_util(int cpu, unsigned long util_cfs,
 #ifdef CONFIG_SCHED_WALT
 static unsigned long waltgov_get_util(struct waltgov_cpu *wg_cpu)
 {
-	struct rq *rq = cpu_rq(wg_cpu->cpu);
+	//struct rq *rq = cpu_rq(wg_cpu->cpu);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	unsigned long max = arch_scale_cpu_capacity(NULL, wg_cpu->cpu);
 #else
@@ -639,7 +630,6 @@ static void waltgov_walt_adjust(struct waltgov_cpu *wg_cpu, unsigned long cpu_ut
 	bool is_rtg_boost = wg_cpu->walt_load.rtgb_active;
 #endif
 	bool is_hiload;
-	unsigned long pl = wg_cpu->walt_load.pl;
 	unsigned long min_util;
 	int target_boost;
 
@@ -668,11 +658,8 @@ static void waltgov_walt_adjust(struct waltgov_cpu *wg_cpu, unsigned long cpu_ut
 	if (is_hiload && nl >= mult_frac(cpu_util, NL_RATIO, 100))
 		*util = *max;
 
-	if (wg_policy->tunables->pl && pl > *util) {
-		if (conservative_pl())
-			pl = mult_frac(pl, TARGET_LOAD, 100);
-		*util = (*util + pl) / 2;
-	}
+	if (wg_policy->tunables->pl && wg_cpu->walt_load.pl > *util)
+		*util = (*util + wg_cpu->walt_load.pl) / 2;
 }
 #endif
 
@@ -830,7 +817,6 @@ static unsigned int waltgov_next_freq_shared(struct waltgov_cpu *wg_cpu, u64 tim
 {
 	struct waltgov_policy *wg_policy = wg_cpu->wg_policy;
 	struct cpufreq_policy *policy = wg_policy->policy;
-	u64 last_freq_update_time = wg_policy->last_freq_update_time;
 	unsigned long util = 0, max = 1;
 	unsigned int j;
 	int boost = wg_policy->tunables->boost;
