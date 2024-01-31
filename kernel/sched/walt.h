@@ -58,6 +58,10 @@ extern void update_task_ravg(struct task_struct *p, struct rq *rq, int event,
 
 extern unsigned int nr_eligible_big_tasks(int cpu);
 
+struct waltgov_callback {
+	void (*func)(struct waltgov_callback *cb, u64 time, unsigned int flags);
+};
+
 static inline void
 inc_nr_big_task(struct walt_sched_stats *stats, struct task_struct *p)
 {
