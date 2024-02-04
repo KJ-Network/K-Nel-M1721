@@ -727,14 +727,25 @@ export DISABLE_CFI
 endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS   += -Os
+KBUILD_CFLAGS   += -pipe -Os
 else
 ifeq ($(cc-name),clang)
-KBUILD_CFLAGS   += -O3 -finline-hint-functions
+KBUILD_CFLAGS   += -pipe -O3 -finline-hint-functions
 else
-KBUILD_CFLAGS   += -O2
+KBUILD_CFLAGS   += -pipe -O3
 endif
 endif
+
+# Tell compiler to tune the performance of the code for a specified
+# target processor
+ifeq ($(cc-name),gcc)
+KBUILD_CFLAGS += -mcpu=cortex-a53+crc+crypto -mtune=cortex-a53 -funswitch-loops -funroll-loops -fpeel-loops -fsplit-loops -Wno-error
+KBUILD_AFLAGS += -mcpu=cortex-a53+crc+crypto -mtune=cortex-a53 -funswitch-loops -funroll-loops -fpeel-loops -fsplit-loops -Wno-error
+else ifeq ($(cc-name),clang)
+KBUILD_CFLAGS += -mcpu=cortex-a53 -mtune=cortex-a53 -funroll-loops
+KBUILD_AFLAGS += -mcpu=cortex-a53 -mtune=cortex-a53 -funroll-loops
+endif
+
 
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS	+= -Werror
