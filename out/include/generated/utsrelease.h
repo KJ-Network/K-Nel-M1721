@@ -1,1 +1,1 @@
-#define UTS_RELEASE "4.9.330 K-Nel M1721 Release 1.2-g3a7d65f3f-dirty"
+#define UTS_RELEASE "4.9.330 K-Nel M1721 Release 1.3-gdf6f9e823-dirty"
