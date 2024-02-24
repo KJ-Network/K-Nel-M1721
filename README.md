@@ -10,7 +10,8 @@
 * 已实现功能：
 * 1.KernelSU
 * 2.Kallsyms
-* 3.Kernel Virtual Machine
+* 3.Kernel-base Virtual Machine
+* 4.Zram（压缩格式为lz4）
 * 将要更新的功能：
 * 1.假bl锁状态（锁定状态）
 * 2.init.d支持
