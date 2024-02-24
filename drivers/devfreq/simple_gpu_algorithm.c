@@ -19,13 +19,13 @@
 #include <linux/devfreq.h>
 #include <linux/msm_adreno_devfreq.h>
 
-static int default_laziness = 4;
+static int default_laziness = 2;
 module_param_named(simple_laziness, default_laziness, int, 0664);
 
-static int ramp_up_threshold = 5000;
+static int ramp_up_threshold = 3000;
 module_param_named(simple_ramp_threshold, ramp_up_threshold, int, 0664);
 
-int simple_gpu_active = 0;
+int simple_gpu_active = 1;
 module_param_named(simple_gpu_activate, simple_gpu_active, int, 0664);
 
 static int laziness;
