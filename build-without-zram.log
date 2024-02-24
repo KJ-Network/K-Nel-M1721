@@ -1,0 +1,83 @@
+make[1]: 进入目录“/root/K-Nel-M1721/out”
+  GEN     ./Makefile
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  GEN     ./Makefile
+  CHK     include/generated/uapi/linux/version.h
+  CHK     scripts/mod/devicetable-offsets.h
+-- KernelSU version: 11551
+-- KernelSU Manager signature size: 0x033b
+-- KernelSU Manager signature hash: c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
+  UPD     include/config/kernel.release
+  Using .. as source for kernel
+  CHK     include/generated/utsrelease.h
+  UPD     include/generated/utsrelease.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    ../scripts/checksyscalls.sh
+  CHK     include/generated/compile.h
+  CC      init/version.o
+  CC      kernel/sys.o
+  LD      init/built-in.o
+  LD      drivers/block/built-in.o
+  CC      drivers/base/firmware_class.o
+  LD      drivers/base/built-in.o
+  CC      kernel/trace/trace.o
+  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+  CC      net/wireguard/src/main.o
+  CC      net/wireguard/src/noise.o
+  CC      net/wireguard/src/device.o
+-- KernelSU version: 11551
+-- KernelSU Manager signature size: 0x033b
+-- KernelSU Manager signature hash: c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
+  CC      net/wireguard/src/peer.o
+  LD      kernel/trace/built-in.o
+  CC      kernel/module.o
+  CC      net/wireguard/src/timers.o
+  CC      net/wireguard/src/queueing.o
+  CC      net/wireguard/src/send.o
+  CC      net/wireguard/src/receive.o
+  CC      net/wireguard/src/socket.o
+  GZIP    kernel/config_data.gz
+  CHK     kernel/config_data.h
+  UPD     kernel/config_data.h
+  CC      kernel/configs.o
+  LD      kernel/built-in.o
+  CC      net/wireguard/src/peerlookup.o
+  CC      net/wireguard/src/allowedips.o
+  CC      net/wireguard/src/ratelimiter.o
+  CC      net/wireguard/src/cookie.o
+  CC      net/wireguard/src/netlink.o
+  CC      net/wireguard/src/crypto/zinc/chacha20/chacha20.o
+  CC      net/wireguard/src/crypto/zinc/poly1305/poly1305.o
+  CC      net/wireguard/src/crypto/zinc/chacha20poly1305.o
+  CC      net/wireguard/src/crypto/zinc/blake2s/blake2s.o
+  CC      net/wireguard/src/crypto/zinc/curve25519/curve25519.o
+  LD      net/wireguard/src/wireguard.o
+  LD      net/wireguard/src/built-in.o
+  LD      net/wireguard/built-in.o
+  LD      net/built-in.o
+  LD      drivers/built-in.o
+  GEN     .version
+  LD      vmlinux.o
+  MODPOST vmlinux.o
+WARNING: modpost: Found 2 section mismatch(es).
+To see full details build your kernel with:
+'make CONFIG_DEBUG_SECTION_MISMATCH=y'
+  CHK     include/generated/compile.h
+  UPD     include/generated/compile.h
+  CC      init/version.o
+  LD      init/built-in.o
+  KSYM    .tmp_kallsyms1.o
+  KSYM    .tmp_kallsyms2.o
+  LD      vmlinux
+  SORTEX  vmlinux
+  SYSMAP  System.map
+  OBJCOPY arch/arm64/boot/Image
+  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+  Building modules, stage 2.
+  MODPOST 0 modules
+  GZIP    arch/arm64/boot/Image.gz
+  CAT     arch/arm64/boot/Image.gz-dtb
+make[1]: 离开目录“/root/K-Nel-M1721/out”
