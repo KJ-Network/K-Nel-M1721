@@ -27,9 +27,12 @@ ramdisk_compression=auto;
 # Display if using Flyme or a custom ROM
 is_flyme="$(file_getprop /system/build.prop 'ro.flyme.ui.version.code')"
 if [[ -z $is_flyme ]]; then
-    ui_print "You are running a custom ROM!"
+    ui_print "你正在使用第三方Rom"
+    ui_print "请确保您的Rom为安卓11及以上，否则内核可能无效"
 else
-    ui_print "You are running Flyme!"
+    ui_print "你正在使用Flyme！"
+    ui_print "本内核仅支持使用安卓11及以上Rom的设备"
+    exit
 fi
 
 ## AnyKernel install
