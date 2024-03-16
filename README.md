@@ -11,9 +11,9 @@
 * 1.KernelSU
 * 2.Kallsyms
 * 3.Kernel-base Virtual Machine
-* 4.Zram（默认压缩格式为lz4）
+* 4.Zram（默认压缩格式为lz4，支持Writeback）
 * 将要更新的功能：
-* 1.假bl锁状态（锁定状态）
+* 1.LXC-Docker
 * 2.init.d支持
 * 等等。。。
 * 如果您有需要，可以使用本仓库的源码重新编译K-Nel，您也可以基于K-Nel制作衍生版内核（自己用随意，公开出来请标注“基于 K-Nel 构建”），但您需要自备clang工具链
