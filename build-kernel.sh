@@ -28,7 +28,7 @@ fi
 #build
 make ${args} m1721_defconfig
 #make ${args} xxxx_defconfig
-make ${args} 2>&1 | tee build-vanilla.log
+make ${args} 2>&1 | tee build-standard.log
 
 if [ -s out/arch/arm64/boot/Image.gz ]
 then echo '----- 编译结束！ -----'
@@ -50,4 +50,4 @@ rm Image.gz
 mv ../out/arch/arm64/boot/Image-Without-KSU.gz ./Image.gz
 zip -r '../K-Nel M1721 Canary Without KSU (Auto Make).zip' *
 echo '----- 打包结束！ -----'
-echo '内核已在当前目录下自动打包，原版名为“K-Nel M1721.zip”，无KernelSU版名为“K-Nel M1721 Without KSU.zip”'
+echo '内核已在当前目录下自动打包，标准版名为“K-Nel M1721 Canary (Auto Make).zip”，无KernelSU版名为“K-Nel M1721 Canary (Auto Make).zip”'

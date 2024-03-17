@@ -185,16 +185,16 @@
 			/* TURBO */
 			qcom,gpu-pwrlevel@0 {
 				reg = <0>;
-				qcom,gpu-freq = <950000000>;
-				qcom,bus-freq = <10>;
+				qcom,gpu-freq = <850000000>;
+				qcom,bus-freq = <11>;
 				qcom,bus-min = <10>;
-				qcom,bus-max = <10>;
+				qcom,bus-max = <11>;
 			};
 
 			/* NOM+ */
 			qcom,gpu-pwrlevel@1 {
 				reg = <1>;
-				qcom,gpu-freq = <850000000>;
+				qcom,gpu-freq = <785000000>;
 				qcom,bus-freq = <10>;
 				qcom,bus-min = <8>;
 				qcom,bus-max = <10>;

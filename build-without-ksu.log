@@ -23,9 +23,9 @@ scripts/kconfig/conf  --silentoldconfig Kconfig
   CC      fs/exec.o
   CC      drivers/input/input.o
   DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+  LD      fs/built-in.o
   LD      drivers/input/input-core.o
   LD      drivers/input/built-in.o
-  LD      fs/built-in.o
   LD      drivers/built-in.o
   GEN     .version
   LD      vmlinux.o
