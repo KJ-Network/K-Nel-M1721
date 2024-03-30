@@ -1,11 +1,10 @@
-make[1]: 进入目录“/root/K-Nel-M1721/out”
   GEN     ./Makefile
 scripts/kconfig/conf  --silentoldconfig Kconfig
   CHK     include/config/kernel.release
   GEN     ./Makefile
   CHK     include/generated/uapi/linux/version.h
-  Using .. as source for kernel
   CHK     include/generated/utsrelease.h
+  Using .. as source for kernel
   CHK     scripts/mod/devicetable-offsets.h
   CHK     include/generated/timeconst.h
   CHK     include/generated/bounds.h
@@ -14,16 +13,16 @@ scripts/kconfig/conf  --silentoldconfig Kconfig
   CHK     include/generated/compile.h
   CC      fs/open.o
   CC      fs/read_write.o
+  CC      fs/stat.o
   GZIP    kernel/config_data.gz
   CHK     kernel/config_data.h
   UPD     kernel/config_data.h
   CC      kernel/configs.o
-  LD      kernel/built-in.o
-  CC      fs/stat.o
   CC      fs/exec.o
+  LD      kernel/built-in.o
   CC      drivers/input/input.o
-  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
   LD      fs/built-in.o
+  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
   LD      drivers/input/input-core.o
   LD      drivers/input/built-in.o
   LD      drivers/built-in.o
@@ -44,8 +43,7 @@ To see full details build your kernel with:
   SYSMAP  System.map
   OBJCOPY arch/arm64/boot/Image
   DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+  GZIP    arch/arm64/boot/Image.gz
   Building modules, stage 2.
   MODPOST 0 modules
-  GZIP    arch/arm64/boot/Image.gz
   CAT     arch/arm64/boot/Image.gz-dtb
-make[1]: 离开目录“/root/K-Nel-M1721/out”

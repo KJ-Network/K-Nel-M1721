@@ -45,9 +45,23 @@ echo '----- 打包失败！-----'
 exit
 fi
 mv ../out/arch/arm64/boot/Image.gz ./
+if [ -e '../K-Nel M1721 Canary (Auto Make).zip' ]
+then rm '../K-Nel M1721 Canary (Auto Make).zip'
+fi
 zip -r '../K-Nel M1721 Canary (Auto Make).zip' *
 rm Image.gz
+if [ -e '../K-Nel M1721 Canary Without KSU (Auto Make).zip' ]
+then rm '../K-Nel M1721 Canary Without KSU (Auto Make).zip'
+fi
 mv ../out/arch/arm64/boot/Image-Without-KSU.gz ./Image.gz
 zip -r '../K-Nel M1721 Canary Without KSU (Auto Make).zip' *
+if [ -s '../K-Nel M1721 Canary (Auto Make).zip' ]
+then test
+else exit
+fi
+if [ -s '../K-Nel M1721 Canary Without KSU (Auto Make).zip' ]
+then test
+else exit
+fi
 echo '----- 打包结束！ -----'
 echo '内核已在当前目录下自动打包，标准版名为“K-Nel M1721 Canary (Auto Make).zip”，无KernelSU版名为“K-Nel M1721 Canary (Auto Make).zip”'
