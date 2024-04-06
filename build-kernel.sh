@@ -13,22 +13,10 @@ CROSS_COMPILE=aarch64-linux-android- \
 CROSS_COMPILE_ARM32=arm-linux-androideabi- \
 CLANG_TRIPLE=aarch64-linux-gnu- "
 
-#build without zram
-make ${args} m1721_without_ksu_defconfig
-#make ${args} xxxx_defconfig
-make ${args} 2>&1 | tee build-without-ksu.log
-
-if [ -s out/arch/arm64/boot/Image.gz ]
-then mv out/arch/arm64/boot/Image.gz out/arch/arm64/boot/Image-Without-KSU.gz
-else
-echo '----- 编译失败！-----'
-exit
-fi
-
 #build
 make ${args} m1721_defconfig
 #make ${args} xxxx_defconfig
-make ${args} 2>&1 | tee build-standard.log
+make ${args} 2>&1 | tee build-kernel.log
 
 if [ -s out/arch/arm64/boot/Image.gz ]
 then echo '----- 编译结束！ -----'
@@ -49,19 +37,9 @@ if [ -e '../K-Nel M1721 Canary (Auto Make).zip' ]
 then rm '../K-Nel M1721 Canary (Auto Make).zip'
 fi
 zip -r '../K-Nel M1721 Canary (Auto Make).zip' *
-rm Image.gz
-if [ -e '../K-Nel M1721 Canary Without KSU (Auto Make).zip' ]
-then rm '../K-Nel M1721 Canary Without KSU (Auto Make).zip'
-fi
-mv ../out/arch/arm64/boot/Image-Without-KSU.gz ./Image.gz
-zip -r '../K-Nel M1721 Canary Without KSU (Auto Make).zip' *
 if [ -s '../K-Nel M1721 Canary (Auto Make).zip' ]
 then test
 else exit
 fi
-if [ -s '../K-Nel M1721 Canary Without KSU (Auto Make).zip' ]
-then test
-else exit
-fi
 echo '----- 打包结束！ -----'
-echo '内核已在当前目录下自动打包，标准版名为“K-Nel M1721 Canary (Auto Make).zip”，无KernelSU版名为“K-Nel M1721 Canary (Auto Make).zip”'
+echo '内核已在当前目录下自动打包，名为“K-Nel M1721 Canary (Auto Make).zip”'

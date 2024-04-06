@@ -1,0 +1,25 @@
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config/kernel.release
+  CHK     include/generated/uapi/linux/version.h
+  CHK     include/generated/utsrelease.h
+-- KernelSU version: 11682
+-- KernelSU Manager signature size: 0x033b
+-- KernelSU Manager signature hash: c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
+  Using .. as source for kernel
+  CHK     scripts/mod/devicetable-offsets.h
+  CHK     include/generated/timeconst.h
+  CHK     include/generated/bounds.h
+  CHK     include/generated/asm-offsets.h
+  CALL    ../scripts/checksyscalls.sh
+  CHK     include/generated/compile.h
+  GZIP    kernel/config_data.gz
+  CHK     kernel/config_data.h
+  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+-- KernelSU version: 11682
+-- KernelSU Manager signature size: 0x033b
+-- KernelSU Manager signature hash: c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
+  GZIP    arch/arm64/boot/Image.gz
+  DTC     arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+  Building modules, stage 2.
+  MODPOST 0 modules
+  CAT     arch/arm64/boot/Image.gz-dtb
