@@ -33,13 +33,13 @@ echo '----- 打包失败！-----'
 exit
 fi
 mv ../out/arch/arm64/boot/Image.gz ./
-if [ -e '../K-Nel M1721 Canary (Auto Make).zip' ]
-then rm '../K-Nel M1721 Canary (Auto Make).zip'
+if [ -e '../K-Nel-M1721.zip' ]
+then rm '../K-Nel-M1721.zip'
 fi
-zip -r '../K-Nel M1721 Canary (Auto Make).zip' *
-if [ -s '../K-Nel M1721 Canary (Auto Make).zip' ]
+zip -r '../K-Nel-M1721.zip' *
+if [ -s '../K-Nel-M1721.zip' ]
 then test
 else exit
 fi
 echo '----- 打包结束！ -----'
-echo '内核已在当前目录下自动打包，名为“K-Nel M1721 Canary (Auto Make).zip”'
+echo '内核已在当前目录下自动打包，名为“K-Nel-M1721.zip”'
