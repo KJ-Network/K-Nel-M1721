@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-echo '----- Build Running······ -----'
+echo 'Build Running······'
 export ARCH=arm64
 export SUBARCH=arm64
 export PATH="/root/K-Nel-Projects/Toolchain/clang-r399163b/bin:/root/K-Nel-Projects/Toolchain/gcc64/bin:/root/K-Nel-Projects/Toolchain/gcc32/bin:$PATH"
@@ -19,8 +19,8 @@ make ${args} m1721_defconfig
 make ${args} 2>&1
 
 if [ -s out/arch/arm64/boot/Image.gz ]
-then echo '----- Build Finished! -----'
+then echo 'Build Finished!'
 else
-echo '----- Build Failed! -----'
+echo 'Build Failed!'
 exit
 fi
