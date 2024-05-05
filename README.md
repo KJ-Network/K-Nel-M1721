@@ -14,9 +14,7 @@
 * 2.Kallsyms
 * 3.Kernel-base Virtual Machine
 * 4.Zram（默认压缩格式为lz4，有zstd，lz4hc等压缩格式，支持回写）
-* 将要更新的功能：
-* 1. Lxc-Docker
-* 等等。。。
+* 5.Lxc-Docker
 * 如果您有需要，可以使用本仓库的源码重新编译K-Nel，您也可以基于K-Nel制作衍生版内核（自己用随意，公开出来请标注“基于 K-Nel 构建”），但您需要自备工具链（本内核需要clang与gcc交叉编译）
 # 注意！
 # 刷机有风险，搞机需谨慎！
