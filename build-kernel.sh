@@ -24,3 +24,22 @@ else
 echo 'Build Failed!'
 exit
 fi
+if [ -e '/root/K-Nel-Projects/OutFiles/K-Nel-M1721.zip' ]
+    then rm '/root/K-Nel-Projects/OutFiles/K-Nel-M1721.zip'
+    fi
+    if [ -e out/arch/arm64/boot/Image.gz ]
+        then
+        echo 'Pack Starting······'
+        cp -r out/arch/arm64/boot/Image.gz Anykernel3
+        cd Anykernel3
+        zip -r '/root/K-Nel-Projects/OutFiles/K-Nel-M1721.zip' *
+        else
+        echo 'Build Failed!'
+        exit
+    fi
+if [ -s '/root/K-Nel-Projects/OutFiles/K-Nel-M1721.zip' ]
+  then echo 'Pack Successed!'
+      else
+        echo 'Pack Failed!'
+        exit
+fi
