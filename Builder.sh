@@ -1,17 +1,18 @@
 #!/usr/bin/bash
-echo 'Build Running······'
-export ARCH=arm64
-export SUBARCH=arm64
+echo 'Please enter a version name:' 
+read -r VERSION
+export LOCALVERSION=$VERSION
 args="-j6 \
 ARCH=arm64 \
 SUBARCH=arm64 \
 O=out \
-CC=clang-13 \
-CROSS_COMPILE=/root/Toolchain/gcc64/bin/aarch64-linux-android- \
-CROSS_COMPILE_ARM32=/root/Toolchain/gcc32/bin/arm-linux-androideabi- \
-CLANG_TRIPLE=aarch64-linux-gnu- "
+CC=/home/kejia/Toolchain/clang/bin/clang \
+CROSS_COMPILE=/home/kejia/Toolchain/gcc64/bin/aarch64-linux-android- \
+CROSS_COMPILE_ARM32=/home/kejia/Toolchain/gcc32/bin/arm-linux-androideabi- \
+CLANG_TRIPLE=aarch64-linux-gnu- \
+CONFIG_DEBUG_SECTION_MISMATCH=y "
 
-#Build Kernel
+echo 'Building······'
 #build vanilla
 make ${args} m1721_defconfig
 make ${args} 2>&1
@@ -36,7 +37,7 @@ else
     exit
 fi
 
-echo 'Build Successed'
+echo 'Build Finished'
 
 #pack kernel
 if [ -e out/K-Nel-M1721.zip ]
@@ -79,4 +80,4 @@ if [ -s out/K-Nel-M1721-KSU.zip ]
         echo 'Pack Failed!'
         exit
 fi
-echo 'Pack Successed!'
+echo 'Pack Finished!'
