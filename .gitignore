@@ -1,2 +1,4 @@
 out/*
 Anykernel3/Image.gz
+*.o*
+*.cmd
