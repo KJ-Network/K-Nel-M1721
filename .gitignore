@@ -1,4 +1,4 @@
 out/*
-Anykernel3/Image.gz
+Anykernel3/Image*
 *.o*
 *.cmd
