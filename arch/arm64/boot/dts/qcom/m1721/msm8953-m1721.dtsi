@@ -17,3 +17,4 @@
 #include "msm8953-camera-sensor-qrd-m1721.dtsi"
 #include "msm8953-pinctrl-m1721.dtsi"
 #include "msm8953-memory-m1721.dtsi"
+#include "msm8953-gpu-m1721.dtsi"
