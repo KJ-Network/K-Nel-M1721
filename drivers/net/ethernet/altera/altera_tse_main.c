@@ -152,8 +152,7 @@ static int altera_tse_mdio_create(struct net_device *dev, unsigned int id)
 	mdio = mdiobus_alloc();
 	if (mdio == NULL) {
 		netdev_err(dev, "Error allocating MDIO bus\n");
-		ret = -ENOMEM;
-		goto put_node;
+		return -ENOMEM;
 	}
 
 	mdio->name = ALTERA_TSE_RESOURCE_NAME;
@@ -170,7 +169,6 @@ static int altera_tse_mdio_create(struct net_device *dev, unsigned int id)
 			   mdio->id);
 		goto out_free_mdio;
 	}
-	of_node_put(mdio_node);
 
 	if (netif_msg_drv(priv))
 		netdev_info(dev, "MDIO bus %s: created\n", mdio->id);
@@ -180,8 +178,6 @@ static int altera_tse_mdio_create(struct net_device *dev, unsigned int id)
 out_free_mdio:
 	mdiobus_free(mdio);
 	mdio = NULL;
-put_node:
-	of_node_put(mdio_node);
 	return ret;
 }
 
@@ -1365,19 +1361,16 @@ static int altera_tse_probe(struct platform_device *pdev)
 		priv->rxdescmem_busaddr = dma_res->start;
 
 	} else {
-		ret = -ENODEV;
 		goto err_free_netdev;
 	}
 
-	if (!dma_set_mask(priv->device, DMA_BIT_MASK(priv->dmaops->dmamask))) {
+	if (!dma_set_mask(priv->device, DMA_BIT_MASK(priv->dmaops->dmamask)))
 		dma_set_coherent_mask(priv->device,
 				      DMA_BIT_MASK(priv->dmaops->dmamask));
-	} else if (!dma_set_mask(priv->device, DMA_BIT_MASK(32))) {
+	else if (!dma_set_mask(priv->device, DMA_BIT_MASK(32)))
 		dma_set_coherent_mask(priv->device, DMA_BIT_MASK(32));
-	} else {
-		ret = -EIO;
+	else
 		goto err_free_netdev;
-	}
 
 	/* MAC address space */
 	ret = request_and_map(pdev, "control_port", &control_port,

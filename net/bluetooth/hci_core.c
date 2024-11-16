@@ -1223,12 +1223,6 @@ int hci_inquiry(void __user *arg)
 		goto done;
 	}
 
-	/* Restrict maximum inquiry length to 60 seconds */
-	if (ir.length > 60) {
-		err = -EINVAL;
-		goto done;
-	}
-
 	hci_dev_lock(hdev);
 	if (inquiry_cache_age(hdev) > INQUIRY_CACHE_AGE_MAX ||
 	    inquiry_cache_empty(hdev) || ir.flags & IREQ_CACHE_FLUSH) {
@@ -1551,14 +1545,6 @@ int hci_dev_do_close(struct hci_dev *hdev)
 
 	hci_request_cancel_all(hdev);
 	hci_req_sync_lock(hdev);
-
-	if (!hci_dev_test_flag(hdev, HCI_UNREGISTER) &&
-	    !hci_dev_test_flag(hdev, HCI_USER_CHANNEL) &&
-	    test_bit(HCI_UP, &hdev->flags)) {
-		/* Execute vendor specific shutdown routine */
-		if (hdev->shutdown)
-			hdev->shutdown(hdev);
-	}
 
 	if (!test_and_clear_bit(HCI_UP, &hdev->flags)) {
 		cancel_delayed_work_sync(&hdev->cmd_timer);
@@ -3064,10 +3050,10 @@ int hci_register_dev(struct hci_dev *hdev)
 	 */
 	switch (hdev->dev_type) {
 	case HCI_PRIMARY:
-		id = ida_simple_get(&hci_index_ida, 0, HCI_MAX_ID, GFP_KERNEL);
+		id = ida_simple_get(&hci_index_ida, 0, 0, GFP_KERNEL);
 		break;
 	case HCI_AMP:
-		id = ida_simple_get(&hci_index_ida, 1, HCI_MAX_ID, GFP_KERNEL);
+		id = ida_simple_get(&hci_index_ida, 1, 0, GFP_KERNEL);
 		break;
 	default:
 		return -EINVAL;
@@ -3076,7 +3062,7 @@ int hci_register_dev(struct hci_dev *hdev)
 	if (id < 0)
 		return id;
 
-	snprintf(hdev->name, sizeof(hdev->name), "hci%d", id);
+	sprintf(hdev->name, "hci%d", id);
 	hdev->id = id;
 
 	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
@@ -3148,7 +3134,6 @@ int hci_register_dev(struct hci_dev *hdev)
 	return id;
 
 err_wqueue:
-	debugfs_remove_recursive(hdev->debugfs);
 	destroy_workqueue(hdev->workqueue);
 	destroy_workqueue(hdev->req_workqueue);
 err:
@@ -3161,9 +3146,13 @@ EXPORT_SYMBOL(hci_register_dev);
 /* Unregister HCI device */
 void hci_unregister_dev(struct hci_dev *hdev)
 {
+	int id;
+
 	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
 
 	hci_dev_set_flag(hdev, HCI_UNREGISTER);
+
+	id = hdev->id;
 
 	write_lock(&hci_dev_list_lock);
 	list_del(&hdev->list);
@@ -3193,14 +3182,7 @@ void hci_unregister_dev(struct hci_dev *hdev)
 	}
 
 	device_del(&hdev->dev);
-	/* Actual cleanup is deferred until hci_cleanup_dev(). */
-	hci_dev_put(hdev);
-}
-EXPORT_SYMBOL(hci_unregister_dev);
 
-/* Cleanup HCI device */
-void hci_cleanup_dev(struct hci_dev *hdev)
-{
 	debugfs_remove_recursive(hdev->debugfs);
 	kfree_const(hdev->hw_info);
 	kfree_const(hdev->fw_info);
@@ -3222,8 +3204,11 @@ void hci_cleanup_dev(struct hci_dev *hdev)
 	hci_discovery_filter_clear(hdev);
 	hci_dev_unlock(hdev);
 
-	ida_simple_remove(&hci_index_ida, hdev->id);
+	hci_dev_put(hdev);
+
+	ida_simple_remove(&hci_index_ida, id);
 }
+EXPORT_SYMBOL(hci_unregister_dev);
 
 /* Suspend HCI device */
 int hci_suspend_dev(struct hci_dev *hdev)

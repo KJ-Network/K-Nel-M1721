@@ -158,22 +158,22 @@ static int __init setup_test_suspend(char *value)
 	value++;
 	suspend_type = strsep(&value, ",");
 	if (!suspend_type)
-		return 1;
+		return 0;
 
 	repeat = strsep(&value, ",");
 	if (repeat) {
 		if (kstrtou32(repeat, 0, &test_repeat_count_max))
-			return 1;
+			return 0;
 	}
 
 	for (i = 0; pm_labels[i]; i++)
 		if (!strcmp(pm_labels[i], suspend_type)) {
 			test_state_label = pm_labels[i];
-			return 1;
+			return 0;
 		}
 
 	printk(warn_bad_state, suspend_type);
-	return 1;
+	return 0;
 }
 __setup("test_suspend", setup_test_suspend);
 

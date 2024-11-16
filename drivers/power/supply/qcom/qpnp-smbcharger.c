@@ -39,6 +39,7 @@
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/batterydata-lib.h>
 #include <linux/of_batterydata.h>
+#include <linux/msm_bcl.h>
 #include <linux/ktime.h>
 #include <linux/extcon.h>
 #include <linux/pmic-voter.h>
@@ -285,7 +286,6 @@ struct smbchg_chip {
 	bool				skip_usb_notification;
 	u32				vchg_adc_channel;
 	u32				vusbin_adc_channel; // mCharge
-	struct qpnp_vadc_chip		*vusbin_vadc_dev;
 	struct qpnp_vadc_chip		*vchg_vadc_dev;
 
 	/* mCharge ._. */
@@ -552,9 +552,9 @@ bool mcharger_thread_timeout;
 struct hrtimer mcharger_kthread_timer;
 struct wakeup_source mcharger_thread_ws;
 struct smbchg_chip *g_tmp_chip;
-bool mchg_parallel_enable = false;
-bool mcharger_is_plus = false;
-int temp_det_notify_ms_i = false;
+bool mchg_parallel_enable;
+bool mcharger_is_plus;
+int temp_det_notify_ms_i;
 int temp_det_notify_ms = 5000;
 int batt_good_fcc_tmp = 3400;
 
@@ -996,7 +996,7 @@ static int get_prop_batt_status(struct smbchg_chip *chip)
 	u8 reg = 0, chg_type;
 	bool charger_present, chg_inhibit;
 
-	charger_present = is_usb_present(chip) || is_dc_present(chip) ||
+	charger_present = is_usb_present(chip) | is_dc_present(chip) |
 			  chip->hvdcp_3_det_ignore_uv;
 	if (!charger_present)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
@@ -3141,7 +3141,12 @@ static int smbchg_calc_max_flash_current(struct smbchg_chip *chip)
 		return 0;
 	}
 
-	ibat_now = get_prop_batt_current_now(chip);
+	rc = msm_bcl_read(BCL_PARAM_CURRENT, &ibat_now);
+	if (rc) {
+		pr_smb(PR_STATUS, "BCL current read failed: %d\n", rc);
+		return 0;
+	}
+
 	rbatt_uohm = esr_uohm + chip->rpara_uohm + chip->rslow_uohm;
 	/*
 	 * Calculate the maximum current that can pulled out of the battery
@@ -7744,33 +7749,38 @@ int mcharger_set_high_usb_chg_current(int current_ma) {
 }
 
 int smbchg_get_vchar_usbin(void) {
-	int usbin = -EINVAL, rc = -EINVAL;
+	int rc = -1;
 	struct qpnp_vadc_result adc_result;
-	struct smbchg_chip *chip = g_tmp_chip;
 
-	if (!chip)
+	if (!g_tmp_chip)
 		return rc;
 
-	if (chip->vusbin_vadc_dev && chip->vusbin_adc_channel != -EINVAL) {
-		rc = qpnp_vadc_read(chip->vusbin_vadc_dev,
-				chip->vusbin_adc_channel, &adc_result);
-		if (rc) {
-			pr_smb(PR_STATUS,
+	if (!is_usb_present(g_tmp_chip) && !is_dc_present(g_tmp_chip))
+      	return 0;
+	
+	if (!g_tmp_chip->vchg_vadc_dev)
+		return -EINVAL;
+
+	if (g_tmp_chip->vusbin_adc_channel == -EINVAL)
+		return -EINVAL;
+
+	rc = qpnp_vadc_read(g_tmp_chip->vchg_vadc_dev, 
+						g_tmp_chip->vusbin_adc_channel, &adc_result);
+	if (rc) {
+		pr_err(
 				"error in VUSBIN (channel-%d) read rc = %d\n",
-						chip->vusbin_adc_channel, rc);
-			return 0;
-		}
-		usbin = div_s64(adc_result.measurement, 1000);
+						g_tmp_chip->vusbin_adc_channel, rc);
+		return 0;
 	}
 
-	return usbin;
+	return div_s64(adc_result.measurement, 1000);
 }
 
 #define USBCHG_DEFAULT_TEMP 25
 
 static int smbchg_get_usbchg_temp(struct smbchg_chip *chip)
 {
-	int rc = -EINVAL;
+	int rc;
 	struct qpnp_vadc_result usbchg_temp_result;
 
 	if (chip->usbchg_temp_vadc_dev
@@ -7786,15 +7796,10 @@ static int smbchg_get_usbchg_temp(struct smbchg_chip *chip)
 
 		pr_smb(PR_MISC, "get_usbchg_temp %d, %lld\n",
 				usbchg_temp_result.adc_code, usbchg_temp_result.physical);
-
-		rc = usbchg_temp_result.physical / 1000;
+		return usbchg_temp_result.physical / 1000;
 	}
 
-	// Workaround for chinese charging boards
-	if (rc < 0)
-		rc = USBCHG_DEFAULT_TEMP;
-
-	return rc;
+	return -EINVAL;
 }
 
 #define BOARD_TEMP_DEFAULT_TEMP 25
@@ -7850,7 +7855,7 @@ static int usbchg_thermal_check_protect(struct smbchg_chip *chip) {
 	pr_smb(PR_MISC, "good fcc temp %d, notify ms %d\n",
 			batt_good_fcc_tmp, temp_det_notify_ms);
 
-	if (chip->battery_debug_temp > 0) {
+	if (!(chip->battery_debug_temp & 0x80000000)) {
 		bat_fcc = 1000;
 		if (chip->battery_debug_temp > 99) {
 			if (chip->battery_debug_temp > 449) {
@@ -7881,7 +7886,7 @@ static int usbchg_thermal_check_protect(struct smbchg_chip *chip) {
 	}
 
 	if (usbchg_lcd_is_on()) {
-		if (chip->battery_debug_temp > 0) {
+		if (!(chip->battery_debug_temp & 0x80000000)) {
 			lcd_current = 1000;
 			if (chip->battery_debug_temp > 99) {
 				if (chip->battery_debug_temp > 379 && chip->battery_debug_temp > 449) {
@@ -8112,7 +8117,9 @@ void mcharger_is_plus_set(bool is_plus) {
 int mcharger_thread(void *x) {
 	ktime_t t;
 	u8 val, val2;
+
 	bool batt_hot, batt_cold, usb_ov_det, timer_expired;
+
 	t.tv64 = 3000000000;
 
 	while (true) {
@@ -8128,12 +8135,12 @@ int mcharger_thread(void *x) {
 		smbchg_read(g_tmp_chip, &val, g_tmp_chip->bat_if_base + RT_STS, 1);
 		smbchg_read(g_tmp_chip, &val2, g_tmp_chip->usb_chgpth_base + RT_STS, 1);
 
-		batt_cold = val & COLD_BAT_HARD_BIT;
-		batt_hot = val & HOT_BAT_HARD_BIT;
-		usb_ov_det = val2 & USBIN_OV_BIT;
-		timer_expired = val2 & USBIN_LV;
+		batt_cold = !!(val & COLD_BAT_HARD_BIT);
+		batt_hot = !!(val & HOT_BAT_HARD_BIT);
+		usb_ov_det = !!(val2 & USBIN_OV_BIT);
+		timer_expired = !!(val2 & USBIN_LV);
 
-		if (batt_hot || batt_cold || usb_ov_det || timer_expired) {
+		if (batt_hot || batt_cold || usb_ov_det | timer_expired) {
 			if (mcharger_p20_get_is_enable() && mcharger_p20_get_is_connect())
 				mcharger_p20_reset_ta_vchr();
 			if (mcharger_p10_get_is_enable() && mcharger_p10_get_is_connect())
@@ -9036,8 +9043,7 @@ static int smbchg_probe(struct platform_device *pdev)
 	struct smbchg_chip *chip;
 	struct power_supply *typec_psy = NULL;
 	struct qpnp_vadc_chip *vadc_dev = NULL, *vchg_vadc_dev = NULL,
-						  *vadc_usbchg_dev = NULL, *vadc_board_dev = NULL,
-						  *vusbin_vadc_dev = NULL;
+						  *vadc_usbchg_dev = NULL, *vadc_board_dev = NULL;
 	const char *typec_psy_name;
 	struct power_supply_config usb_psy_cfg = {};
 	struct power_supply_config batt_psy_cfg = {};
@@ -9082,18 +9088,6 @@ static int smbchg_probe(struct platform_device *pdev)
 			rc = PTR_ERR(vchg_vadc_dev);
 			if (rc != -EPROBE_DEFER)
 				dev_err(&pdev->dev, "Couldn't get vadc 'vchg' rc=%d\n",
-						rc);
-			return rc;
-		}
-	}
-
-	vusbin_vadc_dev = NULL;
-	if (of_find_property(pdev->dev.of_node, "qcom,vusbin-vadc", NULL)) {
-		vusbin_vadc_dev = qpnp_get_vadc(&pdev->dev, "vusbin");
-		if (IS_ERR(vusbin_vadc_dev)) {
-			rc = PTR_ERR(vusbin_vadc_dev);
-			if (rc != -EPROBE_DEFER)
-				dev_err(&pdev->dev, "Couldn't get vadc 'vusbin' rc=%d\n",
 						rc);
 			return rc;
 		}
@@ -9237,7 +9231,6 @@ static int smbchg_probe(struct platform_device *pdev)
 	init_completion(&chip->usbin_uv_raised);
 	chip->vadc_dev = vadc_dev;
 	chip->vchg_vadc_dev = vchg_vadc_dev;
-	chip->vusbin_vadc_dev = vusbin_vadc_dev;
 	chip->pdev = pdev;
 	chip->dev = &pdev->dev;
 

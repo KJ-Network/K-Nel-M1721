@@ -195,6 +195,7 @@ int ttm_tt_init(struct ttm_tt *ttm, struct ttm_bo_device *bdev,
 
 	ttm_tt_alloc_page_directory(ttm);
 	if (!ttm->pages) {
+		ttm_tt_destroy(ttm);
 		pr_err("Failed allocating page table\n");
 		return -ENOMEM;
 	}
@@ -227,6 +228,7 @@ int ttm_dma_tt_init(struct ttm_dma_tt *ttm_dma, struct ttm_bo_device *bdev,
 	INIT_LIST_HEAD(&ttm_dma->pages_list);
 	ttm_dma_tt_alloc_page_directory(ttm_dma);
 	if (!ttm->pages) {
+		ttm_tt_destroy(ttm);
 		pr_err("Failed allocating page table\n");
 		return -ENOMEM;
 	}

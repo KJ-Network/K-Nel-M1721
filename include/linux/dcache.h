@@ -294,6 +294,7 @@ extern char *simple_dname(struct dentry *, char *, int);
 extern char *__d_path(const struct path *, const struct path *, char *, int);
 extern char *d_absolute_path(const struct path *, char *, int);
 extern char *d_path(const struct path *, char *, int);
+extern char *d_path_outlen(const struct path *, char *, int *);
 extern char *dentry_path_raw(struct dentry *, char *, int);
 extern char *dentry_path(struct dentry *, char *, int);
 
@@ -499,7 +500,7 @@ extern int sysctl_vfs_cache_pressure;
 
 static inline unsigned long vfs_pressure_ratio(unsigned long val)
 {
-	return mult_frac(val, sysctl_vfs_cache_pressure, 50);
+	return mult_frac(val, sysctl_vfs_cache_pressure, 100);
 }
 
 /**

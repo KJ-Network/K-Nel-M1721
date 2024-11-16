@@ -212,9 +212,6 @@ static inline int nilfs_acl_chmod(struct inode *inode)
 
 static inline int nilfs_init_acl(struct inode *inode, struct inode *dir)
 {
-	if (S_ISLNK(inode->i_mode))
-		return 0;
-
 	inode->i_mode &= ~current_umask();
 	return 0;
 }

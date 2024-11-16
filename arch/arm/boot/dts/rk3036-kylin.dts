@@ -426,7 +426,7 @@
 		};
 	};
 
-	suspend {
+	sleep {
 		global_pwroff: global-pwroff {
 			rockchip,pins = <2 7 RK_FUNC_1 &pcfg_pull_none>;
 		};

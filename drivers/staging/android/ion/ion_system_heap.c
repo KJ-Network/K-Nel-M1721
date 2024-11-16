@@ -140,7 +140,7 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 	}
 	if (!page)
 		return 0;
-	
+
 	return page;
 }
 
@@ -376,7 +376,7 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 	if (align > PAGE_SIZE)
 		return -EINVAL;
 
-	if (size / PAGE_SIZE > totalram_pages() / 2)
+	if (size / PAGE_SIZE > totalram_pages / 2)
 		return -ENOMEM;
 
 	data.size = 0;

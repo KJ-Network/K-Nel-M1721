@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2148,8 +2147,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.edca_be_aifs = pParam->edca_be_aifs;
         pMac->sta_sap_scc_on_dfs_chan = pParam->sta_sap_scc_on_dfs_chan;
         pMac->force_scc_with_ecsa = pParam->force_scc_with_ecsa;
-        pMac->roam.configParam.isPeriodicRoamScanEnabled =
-                                pParam->isPeriodicRoamScanEnabled;
         for (i = 0; i < 3; i++) {
              pMac->roam.configParam.agg_btc_sco_oui[i] =
                                                      pParam->agg_btc_sco_oui[i];
@@ -2358,8 +2355,6 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->edca_be_aifs = pMac->roam.configParam.edca_be_aifs;
         pParam->sta_sap_scc_on_dfs_chan = pMac->sta_sap_scc_on_dfs_chan;
         pParam->force_scc_with_ecsa = pMac->force_scc_with_ecsa;
-        pParam->isPeriodicRoamScanEnabled =
-                     pMac->roam.configParam.isPeriodicRoamScanEnabled;
 
         for (i = 0; i < 3; i++) {
              pParam->agg_btc_sco_oui[i] =
@@ -6783,8 +6778,6 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->force_rsne_override = pSrcProfile->force_rsne_override;
         vos_mem_copy(&pDstProfile->Keys, &pSrcProfile->Keys,
                      sizeof(pDstProfile->Keys));
-        pDstProfile->require_h2e = pSrcProfile->require_h2e;
-
 #ifdef WLAN_FEATURE_VOWIFI_11R
         if (pSrcProfile->MDID.mdiePresent)
         {
@@ -7340,12 +7333,6 @@ eHalStatus csrRoamReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
       smsLog(pMac, LOGP, FL("No profile specified"));
       return eHAL_STATUS_FAILURE;
    }
-
-   if (!pSession) {
-      smsLog(pMac, LOGE, FL("Session_id invalid %d"), sessionId);
-      return eHAL_STATUS_FAILURE;
-   }
-
    smsLog(pMac, LOG1, FL("called  BSSType = %s (%d) authtype = %d "
                                                   "encryType = %d"),
             lim_BssTypetoString(pProfile->BSSType),
@@ -12653,13 +12640,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             {
                 channel = operationChannel;
             }
-
-            if (pProfile->require_h2e)
-            {
-                pParam->extendedRateSet.numRates = 1;
-                pParam->extendedRateSet.rate[0] =
-                    SIR_BSS_MEMBERSHIP_SELECTOR_SAE_H2E | SIR_RATE_MASK;
-            }
             break;
             
         case eSIR_11B_NW_TYPE:
@@ -12677,12 +12657,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
                 channel = operationChannel;
             }
             
-            if (pProfile->require_h2e)
-            {
-                pParam->extendedRateSet.numRates = 1;
-                pParam->extendedRateSet.rate[0] =
-                    SIR_BSS_MEMBERSHIP_SELECTOR_SAE_H2E | SIR_RATE_MASK;
-            }
             break;     
         case eSIR_11G_NW_TYPE:
             /* For P2P Client and P2P GO, disable 11b rates */ 
@@ -12708,13 +12682,9 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
             pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
             pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
-
-            if (pProfile->require_h2e)
-                 pParam->extendedRateSet.numRates = 9;
-            else
-                 pParam->extendedRateSet.numRates = 8;
-
-            pParam->extendedRateSet.rate[0] = SIR_MAC_RATE_6;
+               
+            pParam->extendedRateSet.numRates = 8;
+                        pParam->extendedRateSet.rate[0] = SIR_MAC_RATE_6;
             pParam->extendedRateSet.rate[1] = SIR_MAC_RATE_9;
             pParam->extendedRateSet.rate[2] = SIR_MAC_RATE_12;
             pParam->extendedRateSet.rate[3] = SIR_MAC_RATE_18;
@@ -12722,9 +12692,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             pParam->extendedRateSet.rate[5] = SIR_MAC_RATE_36;
             pParam->extendedRateSet.rate[6] = SIR_MAC_RATE_48;
             pParam->extendedRateSet.rate[7] = SIR_MAC_RATE_54;
-            if (pProfile->require_h2e)
-                pParam->extendedRateSet.rate[8] =
-                SIR_BSS_MEMBERSHIP_SELECTOR_SAE_H2E | SIR_RATE_MASK;
             }
             
             if ( eCSR_OPERATING_CHANNEL_ANY == operationChannel ) 
@@ -12745,6 +12712,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
 static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDescription *pBssDesc, 
                                                  tDot11fBeaconIEs *pIes, tCsrRoamStartBssParams *pParam )
 {
+    
     if( pParam )
     {
         pParam->sirNwType = pBssDesc->nwType;
@@ -15845,12 +15813,6 @@ eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId,
     vos_msg_t msg;
     smsLog( pMac, LOG1, FL("keylength is %d, Encry type is : %d"),
                             keyLength, edType);
-
-    if (!pSession) {
-	smsLog(pMac, LOGE, FL("Session_id invalid %d"), sessionId);
-	return eHAL_STATUS_FAILURE;
-    }
-
     do {
         if( ( 1 != numKeys ) && ( 0 != numKeys ) ) break;
         // all of these fields appear in every SET_CONTEXT message.  Below we'll add in the size for each 
@@ -16550,10 +16512,6 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
     if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
     {
         tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-	if (!pSession) {
-		smsLog(pMac, LOGE, FL("Session_id invalid %d"), sessionId);
-		return;
-	}
         csrRoamStop(pMac, sessionId);
         csrFreeConnectBssDesc(pMac, sessionId);
         csrRoamFreeConnectProfile( pMac, &pSession->connectedProfile );

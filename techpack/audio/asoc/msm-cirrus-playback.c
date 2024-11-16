@@ -29,9 +29,7 @@ extern int afe_apr_send_pkt_crus(void *data, int index, int set);
 static int msm_cirrus_get_temp_cal(void);
 static int msm_cirrus_write_calibration_data(struct crus_gb_cali_data *cali);
 static int msm_cirrus_config_opalum_music(void);
-static int msm_cirrus_config_opalum_voice(void);
 static int msm_cirrus_flash_rx_config(void);
-static int msm_cirrus_flash_rx_new_config(void);
 static int msm_cirrus_flash_tx_config(void);
 static struct crus_gb_cali_data msm_cirrus_get_speaker_calibration_data(void);
 
@@ -46,8 +44,7 @@ struct mutex crus_gb_get_param_lock;
 struct mutex crus_gb_lock;
 static int crus_gb_enable;
 static int crus_gb_cfg, crus_gb_ext_cfg;
-static int music_config_loaded = false;
-static int voice_config_loaded = false;
+static int music_config_loaded;
 static int cirrus_fb_port = AFE_PORT_ID_QUATERNARY_MI2S_TX;
 static int cirrus_ff_port = AFE_PORT_ID_QUATERNARY_MI2S_RX;
 static struct crus_gb_cali_data g_cali;
@@ -64,29 +61,31 @@ void *crus_gen_afe_set_header(int length, int port, int module, int param) {
     return NULL;
 
   /* Set header section */
-  config->data.param_size = length;
   config->hdr.hdr_field = 592;
+  config->hdr.pkt_size = size;
   config->hdr.src_svc = 4;
+  config->hdr.src_domain = 5;
+  config->hdr.src_port = 0;
   config->hdr.dest_svc = 4;
   config->hdr.dest_domain = 4;
-  config->hdr.opcode = 65775;
-  config->hdr.src_domain = 5;
-  config->hdr.pkt_size = size;
-  config->hdr.src_port = 0;
   config->hdr.dest_port = 0;
   config->hdr.token = index;
+  config->hdr.opcode = 65775;
 
   /* Set param section */
   config->param.port_id = (uint16_t)port;
-  config->param.payload_size = payload_size;
   config->param.payload_address_lsw = 0;
   config->param.payload_address_msw = 0;
   config->param.mem_map_handle = 0;
+  /* max data size of the param_ID/module_ID combination */
+  config->param.payload_size = payload_size;
 
   /* Set data section */
   config->data.module_id = (uint32_t)module;
   config->data.param_id = (uint32_t)param;
   config->data.reserved = 0; /* Must be set to 0 */
+  /* actual size of the data for the module_ID/param_ID pair */
+  config->data.param_size = length;
 
   return (void *)config;
 }
@@ -97,7 +96,7 @@ int crus_afe_set_param(int port, int module, int param, int data_size,
   int index = afe_get_port_index(port);
   int ret = 0;
 
-  pr_debug("%s: port = %d module = %d param = 0x%x data_size = %d\n", __func__,
+  pr_info("%s: port = %d module = %d param = 0x%x data_size = %d\n", __func__,
           port, module, param, data_size);
 
   mutex_lock(&crus_gb_lock);
@@ -111,14 +110,14 @@ int crus_afe_set_param(int port, int module, int param, int data_size,
   memcpy((u8 *)config + sizeof(struct afe_custom_crus_set_config_t),
          (u8 *)data_ptr, data_size);
 
-  pr_debug("%s: Preparing to send apr packet.\n", __func__);
+  pr_info("%s: Preparing to send apr packet.\n", __func__);
 
   ret = afe_apr_send_pkt_crus(config, index, 1);
   if (ret) {
     pr_err("%s: crus set_param for port %d failed with code %d\n", __func__,
            port, ret);
   } else {
-    pr_debug("%s: crus set_param sent packet with param id 0x%08x to module "
+    pr_info("%s: crus set_param sent packet with param id 0x%08x to module "
             "0x%08x.\n",
             __func__, param, module);
   }
@@ -144,13 +143,13 @@ void *crus_gen_afe_get_header(int length, int port, int module, int param) {
   config->hdr.hdr_field = 592;
   config->hdr.pkt_size = size;
   config->hdr.src_svc = 4;
-  config->hdr.dest_svc = 4;
-  config->hdr.dest_domain = 4;
-  config->hdr.opcode = 65776;
   config->hdr.src_domain = 5;
   config->hdr.src_port = 0;
+  config->hdr.dest_svc = 4;
+  config->hdr.dest_domain = 4;
   config->hdr.dest_port = 0;
   config->hdr.token = index;
+  config->hdr.opcode = 65776;
 
   /* Set param section */
   config->param.port_id = (uint16_t)port;
@@ -178,7 +177,7 @@ int crus_afe_get_param(int port, int module, int param, int length,
   int index = afe_get_port_index(port);
   int ret = 0;
 
-  pr_debug("%s: port = %d module = %d param = 0x%x length = %d\n", __func__,
+  pr_info("%s: port = %d module = %d param = 0x%x length = %d\n", __func__,
           port, module, param, length);
 
   config = (struct afe_custom_crus_get_config_t *)crus_gen_afe_get_header(
@@ -188,7 +187,7 @@ int crus_afe_get_param(int port, int module, int param, int length,
     return -ENOMEM;
   }
 
-  pr_debug("%s: Preparing to send apr packet\n", __func__);
+  pr_info("%s: Preparing to send apr packet\n", __func__);
 
   mutex_lock(&crus_gb_get_param_lock);
   atomic_set(&crus_gb_get_param_flag, 0);
@@ -200,7 +199,7 @@ int crus_afe_get_param(int port, int module, int param, int length,
     pr_err("%s: crus get_param for port %d failed with code %d\n", __func__,
            port, ret);
   else
-    pr_debug("%s: crus get_param sent packet with param id 0x%08x to module "
+    pr_info("%s: crus get_param sent packet with param id 0x%08x to module "
             "0x%08x.\n",
             __func__, param, module);
 
@@ -208,7 +207,7 @@ int crus_afe_get_param(int port, int module, int param, int length,
   while (!atomic_read(&crus_gb_get_param_flag))
     msleep(1);
 
-  pr_debug("CRUS CRUS_AFE_GET_PARAM: returned data = [4]: %d, [5]: %d\n",
+  pr_info("CRUS CRUS_AFE_GET_PARAM: returned data = [4]: %d, [5]: %d\n",
           crus_gb_get_buffer[4], crus_gb_get_buffer[5]);
 
   /* Copy from dynamic buffer to return buffer */
@@ -232,7 +231,7 @@ int crus_afe_send_config(const char *data, int32_t module) {
   int sent = 0;
   int chars_to_send = 0;
 
-  pr_debug("%s: called with module_id = %x, string length = %d\n", __func__,
+  pr_info("%s: called with module_id = %x, string length = %d\n", __func__,
           module, length);
 
   /* Destination settings for message */
@@ -302,7 +301,7 @@ int crus_afe_send_config(const char *data, int32_t module) {
       pr_err("%s: crus set_param for port %d failed with code %d\n", __func__,
              port, ret);
     else
-      pr_debug("%s: crus set_param sent packet with param id 0x%08x to module "
+      pr_err("%s: crus set_param sent packet with param id 0x%08x to module "
              "0x%08x.\n",
              __func__, param, module);
 
@@ -316,7 +315,7 @@ int crus_afe_send_config(const char *data, int32_t module) {
 int crus_afe_callback(void *payload, int size) {
   uint32_t *payload32 = payload;
 
-  pr_debug("Cirrus AFE CALLBACK: size = %d\n", size);
+  pr_info("Cirrus AFE CALLBACK: size = %d\n", size);
 
   switch (payload32[1]) {
   case CIRRUS_GB_FFPORT:
@@ -337,7 +336,7 @@ static int msm_routing_crus_gb_enable(struct snd_kcontrol *kcontrol,
                                       struct snd_ctl_elem_value *ucontrol) {
   const int crus_set = ucontrol->value.integer.value[0];
 
-  pr_debug("%s: crus_set = %d\n", __func__, crus_set);
+  pr_info("%s: crus_set = %d\n", __func__, crus_set);
 
   if (crus_set > 255) {
     pr_err("%s: Invalid entry\n", __func__);
@@ -346,10 +345,12 @@ static int msm_routing_crus_gb_enable(struct snd_kcontrol *kcontrol,
 
   switch (crus_set) {
   case 0:
+    pr_info("%s: disable\n", __func__);
     crus_enable.value = 0;
     crus_gb_enable = 0;
     break;
   case 1:
+    pr_info("%s: enable\n", __func__);
     crus_enable.value = 1;
     crus_gb_enable = 1;
     break;
@@ -371,7 +372,7 @@ static int msm_routing_crus_gb_cfg(struct snd_kcontrol *kcontrol,
   const int crus_set = ucontrol->value.integer.value[0];
   int ret;
 
-  pr_debug("%s: crus_set = %d\n", __func__, crus_set);
+  pr_info("%s: crus_set = %d\n", __func__, crus_set);
 
   if (crus_set > 255) {
     pr_err("%s: Invalid entry\n", __func__);
@@ -380,28 +381,22 @@ static int msm_routing_crus_gb_cfg(struct snd_kcontrol *kcontrol,
 
   switch (crus_set) {
   case 0:
-    pr_debug("%s: getting current temp\n", __func__);
+    pr_info("%s: getting current temp\n", __func__);
     ret = msm_cirrus_get_temp_cal();
     if (ret)
       pr_err("%s: failed to get current temp %d\n", __func__, ret);
     break;
   case 1:
-    pr_debug("%s: setting temp calibration\n", __func__);
+    pr_info("%s: setting temp calibration\n", __func__);
     ret = msm_cirrus_write_calibration_data(&g_cali);
     if (ret)
       pr_err("%s: failed to set temp calibration %d\n", __func__, ret);
     break;
   case 2:
-    pr_debug("%s: setting Opalum config to Music\n", __func__);
+    pr_info("%s: setting Opalum config to Music\n", __func__);
     ret = msm_cirrus_config_opalum_music();
     if (ret)
-      pr_err("%s: failed to set Opalum Music config %d\n", __func__, ret);
-    break;
-  case 3:
-    pr_debug("%s: setting Opalum config to Voice\n", __func__);
-    ret = msm_cirrus_config_opalum_voice();
-    if (ret)
-      pr_err("%s: failed to set Opalum Voice config %d\n", __func__, ret);
+      pr_err("%s: failed to set Opalum config %d\n", __func__, ret);
     break;
   default:
     return -EINVAL;
@@ -417,7 +412,7 @@ static int msm_routing_crus_gb_ext_cfg(struct snd_kcontrol *kcontrol,
   const int crus_set = ucontrol->value.integer.value[0];
   int ret;
 
-  pr_debug("%s: crus_set = %d\n", __func__, crus_set);
+  pr_info("%s: crus_set = %d\n", __func__, crus_set);
 
   if (crus_set > 255) {
     pr_err("%s: Invalid entry\n", __func__);
@@ -426,25 +421,19 @@ static int msm_routing_crus_gb_ext_cfg(struct snd_kcontrol *kcontrol,
 
   switch (crus_set) {
   case 0:
-    pr_debug("%s: default, nothing to do\n", __func__);
+    pr_info("%s: default, nothing to do\n", __func__);
     break;
   case 1:
-    pr_debug("%s: flashing RX default config\n", __func__);
+    pr_info("%s: flashing RX default config\n", __func__);
     ret = msm_cirrus_flash_rx_config();
     if (ret)
       pr_err("%s: failed to flash RX config %d\n", __func__, ret);
     break;
   case 2:
-    pr_debug("%s: flashing TX new config\n", __func__);
+    pr_info("%s: flashing TX new config\n", __func__);
     ret = msm_cirrus_flash_tx_config();
     if (ret)
       pr_err("%s: failed to flash TX config %d\n", __func__, ret);
-    break;
-  case 3:
-    pr_debug("%s: flashing RX new config\n", __func__);
-    ret = msm_cirrus_flash_rx_new_config();
-    if (ret)
-      pr_err("%s: failed to flash RX (new) config %d\n", __func__, ret);
     break;
   default:
     return -EINVAL;
@@ -457,7 +446,7 @@ static int msm_routing_crus_gb_ext_cfg(struct snd_kcontrol *kcontrol,
 
 static int msm_routing_crus_gb_enable_get(struct snd_kcontrol *kcontrol,
                                           struct snd_ctl_elem_value *ucontrol) {
-  pr_debug("%s: crus_gb_enable = %d\n", __func__, crus_gb_enable);
+  pr_info("%s: crus_gb_enable = %d\n", __func__, crus_gb_enable);
 
   ucontrol->value.integer.value[0] = crus_gb_enable;
 
@@ -466,7 +455,7 @@ static int msm_routing_crus_gb_enable_get(struct snd_kcontrol *kcontrol,
 
 static int msm_routing_crus_gb_cfg_get(struct snd_kcontrol *kcontrol,
                                           struct snd_ctl_elem_value *ucontrol) {
-  pr_debug("%s: crus_gb_cfg = %d\n", __func__, crus_gb_cfg);
+  pr_info("%s: crus_gb_cfg = %d\n", __func__, crus_gb_cfg);
 
   ucontrol->value.integer.value[0] = crus_gb_cfg;
 
@@ -475,7 +464,7 @@ static int msm_routing_crus_gb_cfg_get(struct snd_kcontrol *kcontrol,
 
 static int msm_routing_crus_gb_ext_cfg_get(struct snd_kcontrol *kcontrol,
                                           struct snd_ctl_elem_value *ucontrol) {
-  pr_debug("%s: crus_gb_ext_cfg = %d\n", __func__, crus_gb_ext_cfg);
+  pr_info("%s: crus_gb_ext_cfg = %d\n", __func__, crus_gb_ext_cfg);
 
   ucontrol->value.integer.value[0] = crus_gb_ext_cfg;
 
@@ -488,14 +477,12 @@ static const char *const crus_cfg_text[] = {
   "Get Current Temp", 
   "Set Temp Calibration",
   "Opalum Music",
-  "Opalum Voice",
 };
 
 static const char *const crus_ext_cfg_text[] = {
   "Default", 
   "RX Default",
   "TX New",
-  "RX New",
 };
 
 static const struct soc_enum crus_en_enum[] = {
@@ -503,11 +490,11 @@ static const struct soc_enum crus_en_enum[] = {
 };
 
 static const struct soc_enum crus_cfg_enum[] = {
-    SOC_ENUM_SINGLE_EXT(4, crus_cfg_text),
+    SOC_ENUM_SINGLE_EXT(3, crus_cfg_text),
 };
 
 static const struct soc_enum crus_ext_cfg_enum[] = {
-    SOC_ENUM_SINGLE_EXT(4, crus_ext_cfg_text),
+    SOC_ENUM_SINGLE_EXT(3, crus_ext_cfg_text),
 };
 
 static const struct snd_kcontrol_new crus_mixer_controls[] = {
@@ -525,7 +512,7 @@ void msm_crus_pb_add_controls(struct snd_soc_platform *platform) {
   if (crus_gb_device == NULL)
     pr_err("%s: platform->dev is NULL!\n", __func__);
   else
-    pr_debug("%s: platform->dev = %lx\n", __func__,
+    pr_info("%s: platform->dev = %lx\n", __func__,
             (unsigned long)crus_gb_device);
 
   snd_soc_add_platform_controls(platform, crus_mixer_controls, 3);
@@ -570,7 +557,7 @@ static struct crus_gb_cali_data msm_cirrus_get_speaker_calibration_data(void) {
   set_fs(old_fs);
 
   if (ret.ret < 0) {
-    pr_err("%s: Failed to read calibration data from proinfo pseudo-file (ret "
+    printk("%s: Failed to read calibration data from proinfo pseudo-file (ret "
            "= %d)\n",
            __func__, ret.ret);
     return ret;
@@ -579,7 +566,7 @@ static struct crus_gb_cali_data msm_cirrus_get_speaker_calibration_data(void) {
   ret.ret =
       sscanf(proinfo_data, "%d,%d,%d", &ret.temp_acc, &ret.count, &ret.ambient);
   if (ret.ret != 3) {
-    pr_err("%s: Failed to parse calibration data (ret = %d, data = %s)\n",
+    printk("%s: Failed to parse calibration data (ret = %d, data = %s)\n",
            __func__, ret.ret, proinfo_data);
     return ret;
   }
@@ -617,38 +604,6 @@ static int msm_cirrus_flash_tx_config(void) {
   return 0;
 }
 
-static int msm_cirrus_flash_rx_new_config(void) {
-  char *data;
-  const struct firmware *fw;
-  int ret = 0;
-
-  ret = request_firmware(&fw, "crus_gb_config_new_rx.bin", crus_gb_device);
-  if (ret != 0) {
-    pr_err("%s: failed to load RX config: %d\n", __func__, ret);
-    return ret;
-  }
-
-  data = kmalloc(fw->size, GFP_KERNEL);
-  memcpy(data, fw->data, fw->size);
-  data[fw->size] = '\0';
-  pr_debug("%s: length = %d; data = %lx\n", __func__, (unsigned int)fw->size,
-           (long unsigned int)fw->data);
-
-  // Protection for double load
-  if (!voice_config_loaded) {
-    voice_config_loaded = 1;
-    ret = crus_afe_send_config(data, CIRRUS_GB_FFPORT);
-    pr_debug("%s: ret: %d\n", __func__, ret);
-  } else {
-    pr_debug("%s: skip config load\n", __func__);
-  }
-
-  release_firmware(fw);
-  kfree(data);
-
-  return 0;
-}
-
 static int msm_cirrus_flash_rx_config(void) {
   char *data;
   const struct firmware *fw;
@@ -672,7 +627,7 @@ static int msm_cirrus_flash_rx_config(void) {
     ret = crus_afe_send_config(data, CIRRUS_GB_FFPORT);
     pr_debug("%s: ret: %d\n", __func__, ret);
   } else {
-    pr_debug("%s: skip config load\n", __func__);
+    pr_warn("%s: skip config load\n", __func__);
   }
 
   release_firmware(fw);
@@ -682,25 +637,9 @@ static int msm_cirrus_flash_rx_config(void) {
 }
 
 static int msm_cirrus_config_opalum_music(void) {
-  // By default, music Opalum mode is 1.
-  // 2 selects Dolby mode.
-  struct crus_single_data_t opalum_ctl = {2};
+  struct crus_single_data_t opalum_ctl = {0};
 
-  pr_debug("%s: setting Opalum to Music mode\n", __func__);
-
-  music_config_loaded = 0;
-
-  return crus_afe_set_param(cirrus_ff_port, CIRRUS_GB_FFPORT, CRUS_PARAM_OPALUM,
-                            sizeof(struct crus_single_data_t),
-                            (void *)&opalum_ctl);
-}
-
-static int msm_cirrus_config_opalum_voice(void) {
-  struct crus_single_data_t opalum_ctl = {1};
-
-  pr_debug("%s: setting Opalum to Voice mode\n", __func__);
-
-  voice_config_loaded = 0;
+  pr_err("%s: setting Opalum to Music mode\n", __func__);
 
   return crus_afe_set_param(cirrus_ff_port, CIRRUS_GB_FFPORT, CRUS_PARAM_OPALUM,
                             sizeof(struct crus_single_data_t),
@@ -714,8 +653,8 @@ static int msm_cirrus_write_calibration_data(struct crus_gb_cali_data *cali) {
       cali->ambient,
   };
 
-  pr_debug("%s: temp_acc: %d, count: %d, ambient: %d\n", __func__,
-           cal_data.data1, cal_data.data2, cal_data.data3);
+  pr_err("%s: temp_acc: %d, count: %d, ambient: %d\n", __func__,
+         cal_data.data1, cal_data.data2, cal_data.data3);
 
   return crus_afe_set_param(
       cirrus_ff_port, CIRRUS_GB_FFPORT, CRUS_PARAM_SET_TEMP_CAL,
@@ -732,8 +671,8 @@ static int msm_cirrus_get_temp_cal(void) {
   if (ret)
     return ret;
 
-  pr_debug("%s: temp_acc: %d, count: %d\n", __func__, cal_data.data1,
-           cal_data.data2);
+  pr_err("%s: temp_acc: %d, count: %d\n", __func__, cal_data.data1,
+         cal_data.data2);
 
   return 0;
 }
@@ -745,12 +684,13 @@ void msm_cirrus_callback(void) {
 }
 
 static int __init crus_gb_init(void) {
-  pr_info("%s: initializing\n", __func__);
+  pr_info("%s: enter\n", __func__);
   atomic_set(&crus_gb_get_param_flag, 0);
   atomic_set(&crus_gb_misc_usage_count, 0);
   mutex_init(&crus_gb_get_param_lock);
   mutex_init(&crus_gb_lock);
 
+  pr_info("%s: exit\n", __func__);
   return 0;
 }
 module_init(crus_gb_init);

@@ -396,7 +396,10 @@ static int recent_mt_check(const struct xt_mtchk_param *par,
 	}
 
 	sz = sizeof(*t) + sizeof(t->iphash[0]) * ip_list_hash_size;
-	t = kvzalloc(sz, GFP_KERNEL);
+	if (sz <= PAGE_SIZE)
+		t = kzalloc(sz, GFP_KERNEL);
+	else
+		t = vzalloc(sz);
 	if (t == NULL) {
 		ret = -ENOMEM;
 		goto out;

@@ -2128,7 +2128,7 @@ int ext4_alloc_flex_bg_array(struct super_block *sb, ext4_group_t ngroup)
 	if (size <= sbi->s_flex_groups_allocated)
 		return 0;
 
-	new_groups = kvzalloc(roundup_pow_of_two(size *
+	new_groups = ext4_kvzalloc(roundup_pow_of_two(size *
 				   sizeof(*sbi->s_flex_groups)), GFP_KERNEL);
 	if (!new_groups) {
 		ext4_msg(sb, KERN_ERR,
@@ -3248,11 +3248,9 @@ static int count_overhead(struct super_block *sb, ext4_group_t grp,
 	ext4_fsblk_t		first_block, last_block, b;
 	ext4_group_t		i, ngroups = ext4_get_groups_count(sb);
 	int			s, j, count = 0;
-	int			has_super = ext4_bg_has_super(sb, grp);
 
 	if (!ext4_has_feature_bigalloc(sb))
-		return (has_super + ext4_bg_num_gdb(sb, grp) +
-			(has_super ? le16_to_cpu(sbi->s_es->s_reserved_gdt_blocks) : 0) +
+		return (ext4_bg_has_super(sb, grp) + ext4_bg_num_gdb(sb, grp) +
 			sbi->s_itb_per_group + 2);
 
 	first_block = le32_to_cpu(sbi->s_es->s_first_data_block) +
@@ -3984,7 +3982,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 		}
 	}
 	rcu_assign_pointer(sbi->s_group_desc,
-			   kvmalloc(db_count *
+			   ext4_kvmalloc(db_count *
 					  sizeof(struct buffer_head *),
 					  GFP_KERNEL));
 	if (sbi->s_group_desc == NULL) {
@@ -4173,18 +4171,9 @@ no_journal:
 	 * Get the # of file system overhead blocks from the
 	 * superblock if present.
 	 */
-	sbi->s_overhead = le32_to_cpu(es->s_overhead_clusters);
-	/* ignore the precalculated value if it is ridiculous */
-	if (sbi->s_overhead > ext4_blocks_count(es))
-		sbi->s_overhead = 0;
-	/*
-	 * If the bigalloc feature is not enabled recalculating the
-	 * overhead doesn't take long, so we might as well just redo
-	 * it to make sure we are using the correct value.
-	 */
-	if (!ext4_has_feature_bigalloc(sb))
-		sbi->s_overhead = 0;
-	if (sbi->s_overhead == 0) {
+	if (es->s_overhead_clusters)
+		sbi->s_overhead = le32_to_cpu(es->s_overhead_clusters);
+	else {
 		err = ext4_calculate_overhead(sb);
 		if (err)
 			goto failed_mount_wq;
@@ -5617,7 +5606,7 @@ static ssize_t ext4_quota_write(struct super_block *sb, int type,
 	struct buffer_head *bh;
 	handle_t *handle = journal_current_handle();
 
-	if (!handle) {
+	if (EXT4_SB(sb)->s_journal && !handle) {
 		ext4_msg(sb, KERN_WARNING, "Quota write (off=%llu, len=%llu)"
 			" cancelled because transaction is not started",
 			(unsigned long long)off, (unsigned long long)len);

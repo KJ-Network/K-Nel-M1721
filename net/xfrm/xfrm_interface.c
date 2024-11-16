@@ -116,9 +116,6 @@ static void xfrmi_unlink(struct xfrmi_net *xfrmn, struct xfrm_if *xi)
 
 static void xfrmi_dev_free(struct net_device *dev)
 {
-	struct xfrm_if *xi = netdev_priv(dev);
-
-	gro_cells_destroy(&xi->gro_cells);
 	free_percpu(dev->tstats);
 }
 
@@ -702,7 +699,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static struct net *xfrmi_get_link_net(const struct net_device *dev)
+struct net *xfrmi_get_link_net(const struct net_device *dev)
 {
 	struct xfrm_if *xi = netdev_priv(dev);
 

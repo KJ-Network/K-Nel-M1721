@@ -120,7 +120,7 @@ static int ses_recv_diag(struct scsi_device *sdev, int page_code,
 static int ses_send_diag(struct scsi_device *sdev, int page_code,
 			 void *buf, int bufflen)
 {
-	int result;
+	u32 result;
 
 	unsigned char cmd[] = {
 		SEND_DIAGNOSTIC,

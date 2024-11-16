@@ -318,7 +318,7 @@ static struct ctl_table ipv4_table[] = {
 		.procname	= "tcp_fastopen",
 		.data		= &sysctl_tcp_fastopen,
 		.maxlen		= sizeof(int),
-		.mode		= 0444,
+		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
 	{

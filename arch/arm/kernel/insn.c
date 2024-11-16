@@ -2,9 +2,8 @@
 #include <linux/kernel.h>
 #include <asm/opcodes.h>
 
-static unsigned long __arm_gen_branch_thumb2(unsigned long pc,
-					     unsigned long addr, bool link,
-					     bool warn)
+static unsigned long
+__arm_gen_branch_thumb2(unsigned long pc, unsigned long addr, bool link)
 {
 	unsigned long s, j1, j2, i1, i2, imm10, imm11;
 	unsigned long first, second;
@@ -12,7 +11,7 @@ static unsigned long __arm_gen_branch_thumb2(unsigned long pc,
 
 	offset = (long)addr - (long)(pc + 4);
 	if (offset < -16777216 || offset > 16777214) {
-		WARN_ON_ONCE(warn);
+		WARN_ON_ONCE(1);
 		return 0;
 	}
 
@@ -33,8 +32,8 @@ static unsigned long __arm_gen_branch_thumb2(unsigned long pc,
 	return __opcode_thumb32_compose(first, second);
 }
 
-static unsigned long __arm_gen_branch_arm(unsigned long pc, unsigned long addr,
-					  bool link, bool warn)
+static unsigned long
+__arm_gen_branch_arm(unsigned long pc, unsigned long addr, bool link)
 {
 	unsigned long opcode = 0xea000000;
 	long offset;
@@ -44,7 +43,7 @@ static unsigned long __arm_gen_branch_arm(unsigned long pc, unsigned long addr,
 
 	offset = (long)addr - (long)(pc + 8);
 	if (unlikely(offset < -33554432 || offset > 33554428)) {
-		WARN_ON_ONCE(warn);
+		WARN_ON_ONCE(1);
 		return 0;
 	}
 
@@ -54,10 +53,10 @@ static unsigned long __arm_gen_branch_arm(unsigned long pc, unsigned long addr,
 }
 
 unsigned long
-__arm_gen_branch(unsigned long pc, unsigned long addr, bool link, bool warn)
+__arm_gen_branch(unsigned long pc, unsigned long addr, bool link)
 {
 	if (IS_ENABLED(CONFIG_THUMB2_KERNEL))
-		return __arm_gen_branch_thumb2(pc, addr, link, warn);
+		return __arm_gen_branch_thumb2(pc, addr, link);
 	else
-		return __arm_gen_branch_arm(pc, addr, link, warn);
+		return __arm_gen_branch_arm(pc, addr, link);
 }

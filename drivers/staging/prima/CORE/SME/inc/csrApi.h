@@ -975,7 +975,6 @@ typedef struct tagCsrRoamProfile
     bool force_24ghz_in_ht20;
     tCsrBssid bssid_hint;
     bool force_rsne_override;
-    bool require_h2e;
 }tCsrRoamProfile;
 
 
@@ -1268,8 +1267,6 @@ typedef struct tagCsrConfigParam
     tANI_U8 num_ba_buff_btc_sco;
     tANI_U8 num_ba_buff;
     bool force_scc_with_ecsa;
-    bool isPeriodicRoamScanEnabled;
-    bool require_h2e;
 }tCsrConfigParam;
 
 //Tush

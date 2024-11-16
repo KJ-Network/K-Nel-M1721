@@ -1,8 +1,6 @@
 
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
  *
@@ -6450,8 +6448,6 @@ typedef PACKED_PRE struct PACKED_POST {
 
   //The MPDU frame length of a beacon or probe rsp. data is the start of the frame
   tANI_U16    frameLength;
-
-  tANI_U32  freq;
 
 } tPrefNetwFoundParams, * tpPrefNetwFoundParams;
 

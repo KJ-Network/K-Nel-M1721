@@ -197,8 +197,8 @@ cc-ldoption = $(call try-run,\
 	$(CC) $(1) $(KBUILD_CPPFLAGS) $(CC_OPTION_CFLAGS) -nostdlib -x c /dev/null -o "$$TMP",$(1),$(2))
 
 # ld-option
-# Usage: LDFLAGS += $(call ld-option, -X, -Y)
-ld-option = $(call try-run, $(LD) $(LDFLAGS) $(1) -v,$(1),$(2),$(3))
+# Usage: LDFLAGS += $(call ld-option, -X)
+ld-option = $(call try-run, $(LD) $(LDFLAGS) $(1) -v,$(1),$(2))
 
 # ar-option
 # Usage: KBUILD_ARFLAGS := $(call ar-option,D)
@@ -216,20 +216,6 @@ ld-version = $(shell $(LD) --version | $(srctree)/scripts/ld-version.sh)
 # ld-ifversion
 # Usage:  $(call ld-ifversion, -ge, 22252, y)
 ld-ifversion = $(shell [ $(ld-version) $(1) $(2) ] && echo $(3) || echo $(4))
-
-# dtc-option
-# Usage:  DTC_FLAGS += $(call dtc-option,-Wno-unit_address_vs_reg)
-#
-# When we use the external dtc, check if the desired options are supported.
-# When we use the kernel's copy (scripts/dtc/dtc), just use the fixed option.
-# Until Kbuild descends into the scripts/dtc/ directory, scripts/dtc/dtc may
-# not exist, i.e. $(call try-run,...) may not work.
-ifeq ("$(origin DTC)", "command line")
-dtc-option = $(call try-run,\
-	echo '/dts-v1/; / {};' | $(DTC) $(1),$(1),$(2))
-else
-dtc-option = $(1)
-endif
 
 # __ld-ifversion
 # Usage:  $(call __ld-ifversion, gold, -ge, 112000000, y)

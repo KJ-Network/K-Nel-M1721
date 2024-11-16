@@ -24,8 +24,7 @@
 
 DEFINE_PER_CPU(int, bpf_prog_active);
 
-int sysctl_unprivileged_bpf_disabled __read_mostly =
-	IS_BUILTIN(CONFIG_BPF_UNPRIV_DEFAULT_OFF) ? 2 : 0;
+int sysctl_unprivileged_bpf_disabled __read_mostly;
 
 static LIST_HEAD(bpf_map_types);
 
@@ -652,39 +651,19 @@ static void free_used_maps(struct bpf_prog_aux *aux)
 	kfree(aux->used_maps);
 }
 
-int __bpf_prog_charge(struct user_struct *user, u32 pages)
-{
-	unsigned long memlock_limit = rlimit(RLIMIT_MEMLOCK) >> PAGE_SHIFT;
-	unsigned long user_bufs;
-
-	if (user) {
-		user_bufs = atomic_long_add_return(pages, &user->locked_vm);
-		if (user_bufs > memlock_limit) {
-			atomic_long_sub(pages, &user->locked_vm);
-			return -EPERM;
-		}
-	}
-
-	return 0;
-}
-
-void __bpf_prog_uncharge(struct user_struct *user, u32 pages)
-{
-	if (user)
-		atomic_long_sub(pages, &user->locked_vm);
-}
-
 static int bpf_prog_charge_memlock(struct bpf_prog *prog)
 {
 	struct user_struct *user = get_current_user();
-	int ret;
+	unsigned long memlock_limit;
 
-	ret = __bpf_prog_charge(user, prog->pages);
-	if (ret) {
+	memlock_limit = rlimit(RLIMIT_MEMLOCK) >> PAGE_SHIFT;
+
+	atomic_long_add(prog->pages, &user->locked_vm);
+	if (atomic_long_read(&user->locked_vm) > memlock_limit) {
+		atomic_long_sub(prog->pages, &user->locked_vm);
 		free_uid(user);
-		return ret;
+		return -EPERM;
 	}
-
 	prog->aux->user = user;
 	return 0;
 }
@@ -693,7 +672,7 @@ static void bpf_prog_uncharge_memlock(struct bpf_prog *prog)
 {
 	struct user_struct *user = prog->aux->user;
 
-	__bpf_prog_uncharge(user, prog->pages);
+	atomic_long_sub(prog->pages, &user->locked_vm);
 	free_uid(user);
 }
 

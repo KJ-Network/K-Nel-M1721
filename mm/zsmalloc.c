@@ -83,19 +83,18 @@
  * This is made more complicated by various memory models and PAE.
  */
 
-#ifndef MAX_POSSIBLE_PHYSMEM_BITS
-#ifdef MAX_PHYSMEM_BITS
-#define MAX_POSSIBLE_PHYSMEM_BITS MAX_PHYSMEM_BITS
-#else
+#ifndef MAX_PHYSMEM_BITS
+#ifdef CONFIG_HIGHMEM64G
+#define MAX_PHYSMEM_BITS 36
+#else /* !CONFIG_HIGHMEM64G */
 /*
  * If this definition of MAX_PHYSMEM_BITS is used, OBJ_INDEX_BITS will just
  * be PAGE_SHIFT
  */
-#define MAX_POSSIBLE_PHYSMEM_BITS BITS_PER_LONG
+#define MAX_PHYSMEM_BITS BITS_PER_LONG
 #endif
 #endif
-
-#define _PFN_BITS		(MAX_POSSIBLE_PHYSMEM_BITS - PAGE_SHIFT)
+#define _PFN_BITS		(MAX_PHYSMEM_BITS - PAGE_SHIFT)
 
 /*
  * Memory for allocating for handle keeps object position by
@@ -1294,21 +1293,61 @@ out:
 
 #endif /* CONFIG_PGTABLE_MAPPING */
 
-static int zs_cpu_prepare(unsigned int cpu)
+static int zs_cpu_notifier(struct notifier_block *nb, unsigned long action,
+				void *pcpu)
 {
+	int ret, cpu = (long)pcpu;
 	struct mapping_area *area;
 
-	area = &per_cpu(zs_map_area, cpu);
-	return __zs_cpu_up(area);
+	switch (action) {
+	case CPU_UP_PREPARE:
+		area = &per_cpu(zs_map_area, cpu);
+		ret = __zs_cpu_up(area);
+		if (ret)
+			return notifier_from_errno(ret);
+		break;
+	case CPU_DEAD:
+	case CPU_UP_CANCELED:
+		area = &per_cpu(zs_map_area, cpu);
+		__zs_cpu_down(area);
+		break;
+	}
+
+	return NOTIFY_OK;
 }
 
-static int zs_cpu_dead(unsigned int cpu)
-{
-	struct mapping_area *area;
+static struct notifier_block zs_cpu_nb = {
+	.notifier_call = zs_cpu_notifier
+};
 
-	area = &per_cpu(zs_map_area, cpu);
-	__zs_cpu_down(area);
-	return 0;
+static int zs_register_cpu_notifier(void)
+{
+	int cpu, uninitialized_var(ret);
+
+	cpu_notifier_register_begin();
+
+	__register_cpu_notifier(&zs_cpu_nb);
+	for_each_online_cpu(cpu) {
+		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
+		if (notifier_to_errno(ret))
+			break;
+	}
+
+	cpu_notifier_register_done();
+	return notifier_to_errno(ret);
+}
+
+static void zs_unregister_cpu_notifier(void)
+{
+	int cpu;
+
+	cpu_notifier_register_begin();
+
+	for_each_online_cpu(cpu)
+		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
+	__unregister_cpu_notifier(&zs_cpu_nb);
+
+	cpu_notifier_register_done();
 }
 
 static void __init init_zs_size_classes(void)
@@ -1942,11 +1981,10 @@ static inline void zs_pool_dec_isolated(struct zs_pool *pool)
 	VM_BUG_ON(atomic_long_read(&pool->isolated_pages) <= 0);
 	atomic_long_dec(&pool->isolated_pages);
 	/*
-	 * Checking pool->destroying must happen after atomic_long_dec()
-	 * for pool->isolated_pages above. Paired with the smp_mb() in
-	 * zs_unregister_migration().
+	 * There's no possibility of racing, since wait_for_isolated_drain()
+	 * checks the isolated count under &class->lock after enqueuing
+	 * on migration_wait.
 	 */
-	smp_mb__after_atomic();
 	if (atomic_long_read(&pool->isolated_pages) == 0 && pool->destroying)
 		wake_up_all(&pool->migration_wait);
 }
@@ -2620,10 +2658,10 @@ static int __init zs_init(void)
 	if (ret)
 		goto out;
 
-	ret = cpuhp_setup_state(CPUHP_MM_ZS_PREPARE, "mm/zsmalloc:prepare",
-				zs_cpu_prepare, zs_cpu_dead);
+	ret = zs_register_cpu_notifier();
+
 	if (ret)
-		goto hp_setup_fail;
+		goto notifier_fail;
 
 	init_zs_size_classes();
 
@@ -2635,7 +2673,8 @@ static int __init zs_init(void)
 
 	return 0;
 
-hp_setup_fail:
+notifier_fail:
+	zs_unregister_cpu_notifier();
 	zsmalloc_unmount();
 out:
 	return ret;
@@ -2647,7 +2686,7 @@ static void __exit zs_exit(void)
 	zpool_unregister_driver(&zs_zpool_driver);
 #endif
 	zsmalloc_unmount();
-	cpuhp_remove_state(CPUHP_MM_ZS_PREPARE);
+	zs_unregister_cpu_notifier();
 
 	zs_stat_exit();
 }

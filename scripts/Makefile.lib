@@ -276,11 +276,31 @@ cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -n -f -9 > $@) || \
 
 # DTC
 # ---------------------------------------------------------------------------
+DTC ?= $(objtree)/scripts/dtc/dtc
+
+# Disable noisy checks by default
+ifeq ($(findstring 1,$(KBUILD_ENABLE_EXTRA_GCC_CHECKS)),)
+DTC_FLAGS += -Wno-unit_address_vs_reg \
+	-Wno-unit_address_format \
+	-Wno-pci_device_reg \
+	-Wno-interrupts_property \
+	-Wno-gpios_property \
+	-Wno-clocks_property \
+	-Wno-avoid_unnecessary_addr_size \
+	-Wno-alias_paths \
+	-Wno-graph_child_address \
+	-Wno-graph_port \
+	-Wno-unique_unit_address \
+	-Wno-avoid_default_addr_size \
+	-Wno-reg_format
+endif
+
+ifneq ($(findstring 2,$(KBUILD_ENABLE_EXTRA_GCC_CHECKS)),)
+DTC_FLAGS += -Wnode_name_chars_strict \
+	-Wproperty_name_chars_strict
+endif
+
 # Generate an assembly file to wrap the output of the device tree compiler
-
-# Silence warnings
-DTC_FLAGS += -q
-
 quiet_cmd_dt_S_dtb= DTB     $@
 cmd_dt_S_dtb=						\
 (							\
@@ -328,7 +348,25 @@ cmd_cat = (cat $(filter-out FORCE,$^) > $@) || (rm -f $@; false)
 
 # Bzip2 and LZMA do not include size in file... so we have to fake that;
 # append the size as a 32-bit littleendian number as gzip does.
-size_append = printf ""
+size_append = printf $(shell						\
+dec_size=0;								\
+for F in $1; do								\
+	fsize=$$(stat -c "%s" $$F);					\
+	dec_size=$$(expr $$dec_size + $$fsize);				\
+done;									\
+printf "%08x\n" $$dec_size |						\
+	sed 's/\(..\)/\1 /g' | {					\
+		read ch0 ch1 ch2 ch3;					\
+		for ch in $$ch3 $$ch2 $$ch1 $$ch0; do			\
+			printf '%s%03o' '\\' $$((0x$$ch)); 		\
+		done;							\
+	}								\
+)
+
+quiet_cmd_bzip2 = BZIP2   $@
+cmd_bzip2 = (cat $(filter-out FORCE,$^) | \
+	bzip2 -9 && $(call size_append, $(filter-out FORCE,$^))) > $@ || \
+	(rm -f $@ ; false)
 
 # Lzma
 # ---------------------------------------------------------------------------

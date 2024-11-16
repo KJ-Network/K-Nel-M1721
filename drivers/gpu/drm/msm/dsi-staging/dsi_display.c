@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1065,7 +1065,7 @@ static ssize_t debugfs_misr_setup(struct file *file,
 		return -ENODEV;
 
 	if (*ppos)
-		return -EINVAL;
+		return 0;
 
 	buf = kzalloc(MISR_BUFF_SIZE, GFP_KERNEL);
 	if (!buf)
@@ -1194,7 +1194,7 @@ static ssize_t debugfs_esd_trigger_check(struct file *file,
 		return -ENODEV;
 
 	if (*ppos)
-		return -EINVAL;
+		return 0;
 
 	if (user_len > sizeof(u32))
 		return -EINVAL;
@@ -1254,7 +1254,7 @@ static ssize_t debugfs_alter_esd_check_mode(struct file *file,
 		return -ENODEV;
 
 	if (*ppos)
-		return -EINVAL;
+		return 0;
 
 	buf = kzalloc(len, GFP_KERNEL);
 	if (ZERO_OR_NULL_PTR(buf))
@@ -1278,11 +1278,8 @@ static ssize_t debugfs_alter_esd_check_mode(struct file *file,
 		goto error;
 	}
 
-	if (!esd_config->esd_enabled) {
-		pr_warn("esd check didn't enable\n");
-		rc = -EINVAL;
+	if (!esd_config->esd_enabled)
 		goto error;
-	}
 
 	if (!strcmp(buf, "te_signal_check\n")) {
 		esd_config->status_mode = ESD_MODE_PANEL_TE;
@@ -4425,6 +4422,12 @@ int dsi_display_cont_splash_config(void *dsi_display)
 		return -EINVAL;
 	}
 
+	/* Continuous splash not supported by external bridge */
+	if (dsi_display_has_ext_bridge(display)) {
+		display->is_cont_splash_enabled = false;
+		return 0;
+	}
+
 	mutex_lock(&display->display_lock);
 
 	/* Vote for gdsc required to read register address space */
@@ -4467,19 +4470,14 @@ int dsi_display_cont_splash_config(void *dsi_display)
 		goto clk_manager_update;
 	}
 
-	/* For external bridge, regulators are managed by bridge driver */
-	if (!dsi_display_has_ext_bridge(display)) {
-		/* Vote on panel regulator will be removed
-		 * during suspend path
-		 */
-		rc = dsi_pwr_enable_regulator(&display->panel->power_info,
-				true);
-		if (rc) {
-			pr_err("[%s] failed to enable vregs, rc=%d\n",
-					display->panel->name, rc);
-			goto clks_disabled;
-		}
+	/* Vote on panel regulator will be removed during suspend path */
+	rc = dsi_pwr_enable_regulator(&display->panel->power_info, true);
+	if (rc) {
+		pr_err("[%s] failed to enable vregs, rc=%d\n",
+				display->panel->name, rc);
+		goto clks_disabled;
 	}
+
 	dsi_config_host_engine_state_for_cont_splash(display);
 	mutex_unlock(&display->display_lock);
 

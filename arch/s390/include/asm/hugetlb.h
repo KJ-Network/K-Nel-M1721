@@ -29,11 +29,9 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
 static inline int prepare_hugepage_range(struct file *file,
 			unsigned long addr, unsigned long len)
 {
-	struct hstate *h = hstate_file(file);
-
-	if (len & ~huge_page_mask(h))
+	if (len & ~HPAGE_MASK)
 		return -EINVAL;
-	if (addr & ~huge_page_mask(h))
+	if (addr & ~HPAGE_MASK)
 		return -EINVAL;
 	return 0;
 }

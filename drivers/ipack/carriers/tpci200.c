@@ -94,13 +94,16 @@ static void tpci200_unregister(struct tpci200_board *tpci200)
 	free_irq(tpci200->info->pdev->irq, (void *) tpci200);
 
 	pci_iounmap(tpci200->info->pdev, tpci200->info->interface_regs);
+	pci_iounmap(tpci200->info->pdev, tpci200->info->cfg_regs);
 
 	pci_release_region(tpci200->info->pdev, TPCI200_IP_INTERFACE_BAR);
 	pci_release_region(tpci200->info->pdev, TPCI200_IO_ID_INT_SPACES_BAR);
 	pci_release_region(tpci200->info->pdev, TPCI200_MEM16_SPACE_BAR);
 	pci_release_region(tpci200->info->pdev, TPCI200_MEM8_SPACE_BAR);
+	pci_release_region(tpci200->info->pdev, TPCI200_CFG_MEM_BAR);
 
 	pci_disable_device(tpci200->info->pdev);
+	pci_dev_put(tpci200->info->pdev);
 }
 
 static void tpci200_enable_irq(struct tpci200_board *tpci200,
@@ -521,7 +524,7 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 	tpci200->info = kzalloc(sizeof(struct tpci200_infos), GFP_KERNEL);
 	if (!tpci200->info) {
 		ret = -ENOMEM;
-		goto err_tpci200;
+		goto out_err_info;
 	}
 
 	pci_dev_get(pdev);
@@ -532,7 +535,7 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to allocate PCI Configuration Memory");
 		ret = -EBUSY;
-		goto err_tpci200_info;
+		goto out_err_pci_request;
 	}
 	tpci200->info->cfg_regs = ioremap_nocache(
 			pci_resource_start(pdev, TPCI200_CFG_MEM_BAR),
@@ -540,7 +543,7 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 	if (!tpci200->info->cfg_regs) {
 		dev_err(&pdev->dev, "Failed to map PCI Configuration Memory");
 		ret = -EFAULT;
-		goto err_request_region;
+		goto out_err_ioremap;
 	}
 
 	/* Disable byte swapping for 16 bit IP module access. This will ensure
@@ -563,7 +566,7 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 	if (ret) {
 		dev_err(&pdev->dev, "error during tpci200 install\n");
 		ret = -ENODEV;
-		goto err_cfg_regs;
+		goto out_err_install;
 	}
 
 	/* Register the carrier in the industry pack bus driver */
@@ -575,7 +578,7 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev,
 			"error registering the carrier on ipack driver\n");
 		ret = -EFAULT;
-		goto err_tpci200_install;
+		goto out_err_bus_register;
 	}
 
 	/* save the bus number given by ipack to logging purpose */
@@ -586,16 +589,16 @@ static int tpci200_pci_probe(struct pci_dev *pdev,
 		tpci200_create_device(tpci200, i);
 	return 0;
 
-err_tpci200_install:
+out_err_bus_register:
 	tpci200_uninstall(tpci200);
-err_cfg_regs:
-	pci_iounmap(tpci200->info->pdev, tpci200->info->cfg_regs);
-err_request_region:
+out_err_install:
+	iounmap(tpci200->info->cfg_regs);
+out_err_ioremap:
 	pci_release_region(pdev, TPCI200_CFG_MEM_BAR);
-err_tpci200_info:
-	kfree(tpci200->info);
+out_err_pci_request:
 	pci_dev_put(pdev);
-err_tpci200:
+	kfree(tpci200->info);
+out_err_info:
 	kfree(tpci200);
 	return ret;
 }
@@ -604,12 +607,6 @@ static void __tpci200_pci_remove(struct tpci200_board *tpci200)
 {
 	ipack_bus_unregister(tpci200->info->ipack_bus);
 	tpci200_uninstall(tpci200);
-
-	pci_iounmap(tpci200->info->pdev, tpci200->info->cfg_regs);
-
-	pci_release_region(tpci200->info->pdev, TPCI200_CFG_MEM_BAR);
-
-	pci_dev_put(tpci200->info->pdev);
 
 	kfree(tpci200->info);
 	kfree(tpci200);

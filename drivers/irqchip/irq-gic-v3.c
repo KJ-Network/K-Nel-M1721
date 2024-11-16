@@ -1061,7 +1061,7 @@ static void gic_raise_softirq(const struct cpumask *mask, unsigned int irq)
 static void __init gic_smp_init(void)
 {
 	set_smp_cross_call(gic_raise_softirq);
-	cpuhp_setup_state_nocalls(CPUHP_AP_IRQ_GIC_STARTING,
+	cpuhp_setup_state_nocalls(CPUHP_AP_IRQ_GICV3_STARTING,
 				  "AP_IRQ_GICV3_STARTING", gic_starting_cpu,
 				  NULL);
 }
@@ -1415,7 +1415,7 @@ static int get_cpu_number(struct device_node *dn)
 {
 	const __be32 *cell;
 	u64 hwid;
-	int cpu;
+	int i;
 
 	cell = of_get_property(dn, "reg", NULL);
 	if (!cell)
@@ -1429,9 +1429,9 @@ static int get_cpu_number(struct device_node *dn)
 	if (hwid & ~MPIDR_HWID_BITMASK)
 		return -1;
 
-	for_each_possible_cpu(cpu)
-		if (cpu_logical_map(cpu) == hwid)
-			return cpu;
+	for (i = 0; i < num_possible_cpus(); i++)
+		if (cpu_logical_map(i) == hwid)
+			return i;
 
 	return -1;
 }

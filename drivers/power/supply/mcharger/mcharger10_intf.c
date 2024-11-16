@@ -22,6 +22,7 @@
 #include <linux/types.h>
 #include <linux/device.h>
 #include <linux/kobject.h>
+#include <linux/msm_bcl.h>
 #include <linux/pm.h>
 #include <linux/printk.h>
 #include <linux/power_supply.h>
@@ -167,8 +168,8 @@ static int p10_check_leave_status(void)
 		return ret;
 	}
 
-    ichg = g_get_prop_batt_current_now();
-    if (ichg < 0) {
+    ret = msm_bcl_read(BCL_PARAM_CURRENT, &ichg);
+    if (ichg != 0) {
         current_sign = 1;
         ichg /= -1000;
     } else {

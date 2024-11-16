@@ -83,7 +83,6 @@ struct ipc_proc_iface {
  */
 static int __init ipc_init(void)
 {
-	proc_mkdir("sysvipc", NULL);
 	sem_init();
 	msg_init();
 	shm_init();
@@ -404,7 +403,12 @@ void ipc_rmid(struct ipc_ids *ids, struct kern_ipc_perm *ipcp)
  */
 void *ipc_alloc(int size)
 {
-	return kvmalloc(size, GFP_KERNEL);
+	void *out;
+	if (size > PAGE_SIZE)
+		out = vmalloc(size);
+	else
+		out = kmalloc(size, GFP_KERNEL);
+	return out;
 }
 
 /**

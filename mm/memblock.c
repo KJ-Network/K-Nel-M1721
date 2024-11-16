@@ -276,20 +276,14 @@ void __init memblock_discard(void)
 		addr = __pa(memblock.reserved.regions);
 		size = PAGE_ALIGN(sizeof(struct memblock_region) *
 				  memblock.reserved.max);
-		if (memblock_reserved_in_slab)
-			kfree(memblock.reserved.regions);
-		else
-			__memblock_free_late(addr, size);
+		__memblock_free_late(addr, size);
 	}
 
 	if (memblock.memory.regions != memblock_memory_init_regions) {
 		addr = __pa(memblock.memory.regions);
 		size = PAGE_ALIGN(sizeof(struct memblock_region) *
 				  memblock.memory.max);
-		if (memblock_memory_in_slab)
-			kfree(memblock.memory.regions);
-		else
-			__memblock_free_late(addr, size);
+		__memblock_free_late(addr, size);
 	}
 }
 #endif
@@ -1397,7 +1391,7 @@ void __init __memblock_free_late(phys_addr_t base, phys_addr_t size)
 
 	for (; cursor < end; cursor++) {
 		__free_pages_bootmem(pfn_to_page(cursor), cursor, 0);
-		totalram_pages_inc();
+		totalram_pages++;
 	}
 }
 

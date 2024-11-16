@@ -127,10 +127,8 @@ static int __control_devkmsg(char *str)
 
 static int __init control_devkmsg(char *str)
 {
-	if (__control_devkmsg(str) < 0) {
-		pr_warn("printk.devkmsg: bad option string '%s'\n", str);
+	if (__control_devkmsg(str) < 0)
 		return 1;
-	}
 
 	/*
 	 * Set sysctl string accordingly:
@@ -152,7 +150,7 @@ static int __init control_devkmsg(char *str)
 	 */
 	devkmsg_log |= DEVKMSG_LOG_MASK_LOCK;
 
-	return 1;
+	return 0;
 }
 __setup("printk.devkmsg=", control_devkmsg);
 
@@ -723,7 +721,6 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 	size_t len = iov_iter_count(from);
 	ssize_t ret = len;
 
-	return len;
 	if (!user || len > LOG_LINE_MAX)
 		return -EINVAL;
 
@@ -2053,15 +2050,8 @@ static int __init console_setup(char *str)
 	char *s, *options, *brl_options = NULL;
 	int idx;
 
-	/*
-	 * console="" or console=null have been suggested as a way to
-	 * disable console output. Use ttynull that has been created
-	 * for exacly this purpose.
-	 */
-	if (str[0] == 0 || strcmp(str, "null") == 0) {
-		__add_preferred_console("ttynull", 0, NULL, NULL);
+	if (str[0] == 0)
 		return 1;
-	}
 
 	if (_braille_console_setup(&str, &brl_options))
 		return 1;
@@ -2158,18 +2148,27 @@ void resume_console(void)
 
 /**
  * console_cpu_notify - print deferred console messages after CPU hotplug
- * @cpu: unused
+ * @self: notifier struct
+ * @action: CPU hotplug event
+ * @hcpu: unused
  *
  * If printk() is called from a CPU that is not online yet, the messages
  * will be spooled but will not show up on the console.  This function is
  * called when a new CPU comes online (or fails to come up), and ensures
  * that any such output gets printed.
  */
-static int console_cpu_notify(unsigned int cpu)
+static int console_cpu_notify(struct notifier_block *self,
+	unsigned long action, void *hcpu)
 {
-	console_lock();
-	console_unlock();
-	return 0;
+	switch (action) {
+	case CPU_ONLINE:
+	case CPU_DEAD:
+	case CPU_DOWN_FAILED:
+	case CPU_UP_CANCELED:
+		console_lock();
+		console_unlock();
+	}
+	return NOTIFY_OK;
 }
 
 #endif
@@ -2808,7 +2807,6 @@ EXPORT_SYMBOL(unregister_console);
 static int __init printk_late_init(void)
 {
 	struct console *con;
-	int ret;
 
 	for_each_console(con) {
 		if (!keep_bootcon && con->flags & CON_BOOT) {
@@ -2824,12 +2822,7 @@ static int __init printk_late_init(void)
 		}
 	}
 #ifdef CONFIG_CONSOLE_FLUSH_ON_HOTPLUG
-	ret = cpuhp_setup_state_nocalls(CPUHP_PRINTK_DEAD, "printk:dead", NULL,
-					console_cpu_notify);
-	WARN_ON(ret < 0);
-	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN, "printk:online",
-					console_cpu_notify, NULL);
-	WARN_ON(ret < 0);
+	hotcpu_notifier(console_cpu_notify, 0);
 #endif
 	return 0;
 }

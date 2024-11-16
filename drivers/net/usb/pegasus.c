@@ -755,16 +755,12 @@ static inline void disable_net_traffic(pegasus_t *pegasus)
 	set_registers(pegasus, EthCtrl0, sizeof(tmp), &tmp);
 }
 
-static inline int get_interrupt_interval(pegasus_t *pegasus)
+static inline void get_interrupt_interval(pegasus_t *pegasus)
 {
 	u16 data;
 	u8 interval;
-	int ret;
 
-	ret = read_eprom_word(pegasus, 4, &data);
-	if (ret < 0)
-		return ret;
-
+	read_eprom_word(pegasus, 4, &data);
 	interval = data >> 8;
 	if (pegasus->usb->speed != USB_SPEED_HIGH) {
 		if (interval < 0x80) {
@@ -779,8 +775,6 @@ static inline int get_interrupt_interval(pegasus_t *pegasus)
 		}
 	}
 	pegasus->intr_interval = interval;
-
-	return 0;
 }
 
 static void set_carrier(struct net_device *net)
@@ -1197,9 +1191,7 @@ static int pegasus_probe(struct usb_interface *intf,
 				| NETIF_MSG_PROBE | NETIF_MSG_LINK);
 
 	pegasus->features = usb_dev_id[dev_index].private;
-	res = get_interrupt_interval(pegasus);
-	if (res)
-		goto out2;
+	get_interrupt_interval(pegasus);
 	if (reset_mac(pegasus)) {
 		dev_err(&intf->dev, "can't reset MAC\n");
 		res = -EIO;

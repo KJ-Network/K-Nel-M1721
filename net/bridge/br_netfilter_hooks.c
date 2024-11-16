@@ -382,7 +382,6 @@ static int br_nf_pre_routing_finish(struct net *net, struct sock *sk, struct sk_
 				/* - Bridged-and-DNAT'ed traffic doesn't
 				 *   require ip_forwarding. */
 				if (rt->dst.dev == dev) {
-					skb_dst_drop(skb);
 					skb_dst_set(skb, &rt->dst);
 					goto bridged_dnat;
 				}
@@ -412,7 +411,6 @@ bridged_dnat:
 			kfree_skb(skb);
 			return 0;
 		}
-		skb_dst_drop(skb);
 		skb_dst_set_noref(skb, &rt->dst);
 	}
 
@@ -726,9 +724,6 @@ static int br_nf_dev_queue_xmit(struct net *net, struct sock *sk, struct sk_buff
 	if (nf_bridge->frag_max_size && nf_bridge->frag_max_size < mtu)
 		mtu = nf_bridge->frag_max_size;
 
-	nf_bridge_update_protocol(skb);
-	nf_bridge_push_encap_header(skb);
-
 	if (skb_is_gso(skb) || skb->len + mtu_reserved <= mtu) {
 		nf_bridge_info_free(skb);
 		return br_dev_queue_push_xmit(net, sk, skb);
@@ -745,6 +740,8 @@ static int br_nf_dev_queue_xmit(struct net *net, struct sock *sk, struct sk_buff
 			goto drop;
 
 		IPCB(skb)->frag_max_size = nf_bridge->frag_max_size;
+
+		nf_bridge_update_protocol(skb);
 
 		data = this_cpu_ptr(&brnf_frag_data_storage);
 
@@ -767,6 +764,8 @@ static int br_nf_dev_queue_xmit(struct net *net, struct sock *sk, struct sk_buff
 			goto drop;
 
 		IP6CB(skb)->frag_max_size = nf_bridge->frag_max_size;
+
+		nf_bridge_update_protocol(skb);
 
 		data = this_cpu_ptr(&brnf_frag_data_storage);
 		data->encap_size = nf_bridge_encap_header_len(skb);

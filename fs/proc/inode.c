@@ -4,7 +4,6 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
-#include <linux/cache.h>
 #include <linux/time.h>
 #include <linux/proc_fs.h>
 #include <linux/kernel.h>
@@ -52,8 +51,7 @@ static void proc_evict_inode(struct inode *inode)
 	}
 }
 
-static struct kmem_cache *proc_inode_cachep __ro_after_init;
-static struct kmem_cache *pde_opener_cache __ro_after_init;
+static struct kmem_cache * proc_inode_cachep;
 
 static struct inode *proc_alloc_inode(struct super_block *sb)
 {
@@ -92,7 +90,7 @@ static void init_once(void *foo)
 	inode_init_once(&ei->vfs_inode);
 }
 
-void __init proc_init_kmemcache(void)
+void __init proc_init_inodecache(void)
 {
 	proc_inode_cachep = kmem_cache_create("proc_inode_cache",
 					     sizeof(struct proc_inode),
@@ -100,9 +98,6 @@ void __init proc_init_kmemcache(void)
 						SLAB_MEM_SPREAD|SLAB_ACCOUNT|
 						SLAB_PANIC),
 					     init_once);
-	pde_opener_cache =
-		kmem_cache_create("pde_opener", sizeof(struct pde_opener), 0,
-				  SLAB_ACCOUNT|SLAB_PANIC, NULL);
 }
 
 static int proc_show_options(struct seq_file *seq, struct dentry *root)
@@ -141,7 +136,7 @@ static void unuse_pde(struct proc_dir_entry *pde)
 		complete(pde->pde_unload_completion);
 }
 
-/* pde is locked on entry, unlocked on exit */
+/* pde is locked */
 static void close_pdeo(struct proc_dir_entry *pde, struct pde_opener *pdeo)
 {
 	if (pdeo->closing) {
@@ -150,21 +145,18 @@ static void close_pdeo(struct proc_dir_entry *pde, struct pde_opener *pdeo)
 		pdeo->c = &c;
 		spin_unlock(&pde->pde_unload_lock);
 		wait_for_completion(&c);
+		spin_lock(&pde->pde_unload_lock);
 	} else {
 		struct file *file;
-		struct completion *c;
-
 		pdeo->closing = 1;
 		spin_unlock(&pde->pde_unload_lock);
 		file = pdeo->file;
 		pde->proc_fops->release(file_inode(file), file);
 		spin_lock(&pde->pde_unload_lock);
 		list_del_init(&pdeo->lh);
-		c = pdeo->c;
-		spin_unlock(&pde->pde_unload_lock);
-		if (unlikely(c))
-			complete(c);
-		kmem_cache_free(pde_opener_cache, pdeo);
+		if (pdeo->c)
+			complete(pdeo->c);
+		kfree(pdeo);
 	}
 }
 
@@ -181,7 +173,6 @@ void proc_entry_rundown(struct proc_dir_entry *de)
 		struct pde_opener *pdeo;
 		pdeo = list_first_entry(&de->pde_openers, struct pde_opener, lh);
 		close_pdeo(de, pdeo);
-		spin_lock(&de->pde_unload_lock);
 	}
 	spin_unlock(&de->pde_unload_lock);
 }
@@ -331,36 +322,30 @@ static int proc_reg_open(struct inode *inode, struct file *file)
 	 * by hand in remove_proc_entry(). For this, save opener's credentials
 	 * for later.
 	 */
-	if (!use_pde(pde))
+	pdeo = kzalloc(sizeof(struct pde_opener), GFP_KERNEL);
+	if (!pdeo)
+		return -ENOMEM;
+
+	if (!use_pde(pde)) {
+		kfree(pdeo);
 		return -ENOENT;
-
-	release = pde->proc_fops->release;
-	if (release) {
-		pdeo = kmem_cache_alloc(pde_opener_cache, GFP_KERNEL);
-		if (!pdeo) {
-			rv = -ENOMEM;
-			goto out_unuse;
-		}
 	}
-
 	open = pde->proc_fops->open;
+	release = pde->proc_fops->release;
+
 	if (open)
 		rv = open(inode, file);
 
-	if (release) {
-		if (rv == 0) {
-			/* To know what to release. */
-			pdeo->file = file;
-			pdeo->closing = false;
-			pdeo->c = NULL;
-			spin_lock(&pde->pde_unload_lock);
-			list_add(&pdeo->lh, &pde->pde_openers);
-			spin_unlock(&pde->pde_unload_lock);
-		} else
-			kmem_cache_free(pde_opener_cache, pdeo);
-	}
+	if (rv == 0 && release) {
+		/* To know what to release. */
+		pdeo->file = file;
+		/* Strictly for "too late" ->release in proc_reg_release(). */
+		spin_lock(&pde->pde_unload_lock);
+		list_add(&pdeo->lh, &pde->pde_openers);
+		spin_unlock(&pde->pde_unload_lock);
+	} else
+		kfree(pdeo);
 
-out_unuse:
 	unuse_pde(pde);
 	return rv;
 }
@@ -373,7 +358,7 @@ static int proc_reg_release(struct inode *inode, struct file *file)
 	list_for_each_entry(pdeo, &pde->pde_openers, lh) {
 		if (pdeo->file == file) {
 			close_pdeo(pde, pdeo);
-			return 0;
+			break;
 		}
 	}
 	spin_unlock(&pde->pde_unload_lock);

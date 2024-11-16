@@ -60,7 +60,20 @@ static struct sock *nl_sk = NULL;
 static int gf_major = -1;
 
 struct gf_key_map maps[] = {
+	{ EV_KEY, KEY_HOME },
+	{ EV_KEY, KEY_MENU },
 	{ EV_KEY, KEY_BACK },
+	{ EV_KEY, KEY_POWER },
+	{ EV_KEY, KEY_F24 },
+	{ EV_KEY, KEY_UP },
+	{ EV_KEY, KEY_DOWN },
+	{ EV_KEY, KEY_RIGHT },
+	{ EV_KEY, KEY_LEFT },
+	{ EV_KEY, KEY_CAMERA },
+	{ EV_KEY, KEY_VOLUMEDOWN },
+	{ EV_KEY, KEY_VOLUMEUP },
+	{ EV_KEY, KEY_SEARCH },
+	{ EV_KEY, KEY_CHAT },
 };
 
 static void sendnlmsg(char *message)
