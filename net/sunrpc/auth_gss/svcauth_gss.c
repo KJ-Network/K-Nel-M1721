@@ -1853,7 +1853,7 @@ gss_svc_init_net(struct net *net)
 		goto out2;
 	return 0;
 out2:
-	rsi_cache_destroy_net(net);
+	destroy_use_gss_proxy_proc_entry(net);
 out1:
 	rsc_cache_destroy_net(net);
 	return rv;

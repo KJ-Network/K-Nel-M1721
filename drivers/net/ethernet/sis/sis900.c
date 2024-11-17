@@ -442,7 +442,7 @@ static int sis900_probe(struct pci_dev *pci_dev,
 #endif
 
 	/* setup various bits in PCI command register */
-	ret = pcim_enable_device(pci_dev);
+	ret = pci_enable_device(pci_dev);
 	if(ret) return ret;
 
 	i = pci_set_dma_mask(pci_dev, DMA_BIT_MASK(32));
@@ -468,7 +468,7 @@ static int sis900_probe(struct pci_dev *pci_dev,
 	ioaddr = pci_iomap(pci_dev, 0, 0);
 	if (!ioaddr) {
 		ret = -ENOMEM;
-		goto err_out;
+		goto err_out_cleardev;
 	}
 
 	sis_priv = netdev_priv(net_dev);
@@ -576,6 +576,8 @@ err_unmap_tx:
 		sis_priv->tx_ring_dma);
 err_out_unmap:
 	pci_iounmap(pci_dev, ioaddr);
+err_out_cleardev:
+	pci_release_regions(pci_dev);
  err_out:
 	free_netdev(net_dev);
 	return ret;
@@ -2423,6 +2425,7 @@ static void sis900_remove(struct pci_dev *pci_dev)
 		sis_priv->tx_ring_dma);
 	pci_iounmap(pci_dev, sis_priv->ioaddr);
 	free_netdev(net_dev);
+	pci_release_regions(pci_dev);
 }
 
 #ifdef CONFIG_PM

@@ -247,7 +247,7 @@ static int tcindex_alloc_perfect_hash(struct tcindex_data *cp)
 	int i, err = 0;
 
 	cp->perfect = kcalloc(cp->hash, sizeof(struct tcindex_filter_result),
-			      GFP_KERNEL | __GFP_NOWARN);
+			      GFP_KERNEL);
 	if (!cp->perfect)
 		return -ENOMEM;
 

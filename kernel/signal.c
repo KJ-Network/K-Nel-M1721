@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <linux/export.h>
 #include <linux/init.h>
+#include <linux/rekernel.h>
 #include <linux/sched.h>
 #include <linux/file.h>
 #include <linux/fs.h>
@@ -1201,11 +1202,63 @@ specific_send_sig_info(int sig, struct siginfo *info, struct task_struct *t)
 	return send_signal(sig, info, t, 0);
 }
 
+static inline bool line_is_frozen(struct task_struct *task)
+{
+	return frozen(task) || freezing(task);
+}
+
+static int send_netlink_message(char *msg, uint16_t len) {
+    struct sk_buff *skbuffer;
+    struct nlmsghdr *nlhdr;
+
+    skbuffer = nlmsg_new(len, GFP_ATOMIC);
+    if (!skbuffer) {
+        printk("netlink alloc failure.\n");
+        return -1;
+    }
+
+    nlhdr = nlmsg_put(skbuffer, 0, 0, rekernel_netlink_unit, len, 0);
+    if (!nlhdr) {
+        printk("nlmsg_put failaure.\n");
+        nlmsg_free(skbuffer);
+        return -1;
+    }
+
+    memcpy(nlmsg_data(nlhdr), msg, len);
+    return netlink_unicast(rekernel_netlink, skbuffer, REKERNEL_USER_PORT, MSG_DONTWAIT);
+}
+
+static int start_rekernel_server(void) {
+  extern struct net init_net;
+  struct netlink_kernel_cfg rekernel_cfg = { 
+    .input = NULL,
+  };
+  if (rekernel_netlink != NULL)
+    return 0;
+  for (rekernel_netlink_unit = NETLINK_REKERNEL_MIN; rekernel_netlink_unit < NETLINK_REKERNEL_MAX; rekernel_netlink_unit++) {
+    rekernel_netlink = (struct sock *)netlink_kernel_create(&init_net, rekernel_netlink_unit, &rekernel_cfg);
+    if (rekernel_netlink != NULL)
+      break;
+  }
+  printk("Created Re:Kernel server! NETLINK UNIT: %d\n", rekernel_netlink_unit);
+  if (rekernel_netlink == NULL) {
+    printk("Failed to create Re:Kernel server!\n");
+    return -1;
+  }
+  return 0;
+}
 int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 			bool group)
 {
 	unsigned long flags;
 	int ret = -ESRCH;
+	if (start_rekernel_server() == 0) {
+ 		if (line_is_frozen(p) && (sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT)) {
+     		char binder_kmsg[REKERNEL_PACKET_SIZE];
+     		snprintf(binder_kmsg, sizeof(binder_kmsg), "type=Signal,signal=%d,killer=%d,dst=%d;", sig, task_uid(p).val, task_uid(current).val);
+     		send_netlink_message(binder_kmsg, strlen(binder_kmsg));
+ 		}
+ 	}
 
 	if (lock_task_sighand(p, &flags)) {
 		ret = send_signal(sig, info, p, group);
@@ -1662,12 +1715,12 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
 	bool autoreap = false;
 	cputime_t utime, stime;
 
-	WARN_ON_ONCE(sig == -1);
+	BUG_ON(sig == -1);
 
-	/* do_notify_parent_cldstop should have been called instead.  */
-	WARN_ON_ONCE(task_is_stopped_or_traced(tsk));
+ 	/* do_notify_parent_cldstop should have been called instead.  */
+ 	BUG_ON(task_is_stopped_or_traced(tsk));
 
-	WARN_ON_ONCE(!tsk->ptrace &&
+	BUG_ON(!tsk->ptrace &&
 	       (tsk->group_leader != tsk || !thread_group_empty(tsk)));
 
 	/* Wake up all pidfd waiters */
@@ -1842,6 +1895,16 @@ static inline int may_ptrace_stop(void)
 }
 
 /*
+ * Return non-zero if there is a SIGKILL that should be waking us up.
+ * Called with the siglock held.
+ */
+static int sigkill_pending(struct task_struct *tsk)
+{
+	return	sigismember(&tsk->pending.signal, SIGKILL) ||
+		sigismember(&tsk->signal->shared_pending.signal, SIGKILL);
+}
+
+/*
  * This must be called with current->sighand->siglock held.
  *
  * This should be the path for all ptrace stops.
@@ -1866,10 +1929,15 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 		 * calling arch_ptrace_stop, so we must release it now.
 		 * To preserve proper semantics, we must do this before
 		 * any signal bookkeeping like checking group_stop_count.
+		 * Meanwhile, a SIGKILL could come in before we retake the
+		 * siglock.  That must prevent us from sleeping in TASK_TRACED.
+		 * So after regaining the lock, we must check for SIGKILL.
 		 */
 		spin_unlock_irq(&current->sighand->siglock);
 		arch_ptrace_stop(exit_code, info);
 		spin_lock_irq(&current->sighand->siglock);
+		if (sigkill_pending(current))
+			return;
 	}
 
 	/*
@@ -1878,8 +1946,6 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 	 * Also, transition to TRACED and updates to ->jobctl should be
 	 * atomic with respect to siglock and should be done after the arch
 	 * hook as siglock is released and regrabbed across it.
-	 * schedule() will not sleep if there is a pending signal that
-	 * can awaken the task.
 	 */
 	set_current_state(TASK_TRACED);
 

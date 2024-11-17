@@ -254,7 +254,7 @@ static int cipso_v4_cache_check(const unsigned char *key,
 	struct cipso_v4_map_cache_entry *prev_entry = NULL;
 	u32 hash;
 
-	if (!READ_ONCE(cipso_v4_cache_enabled))
+	if (!cipso_v4_cache_enabled)
 		return -ENOENT;
 
 	hash = cipso_v4_map_cache_hash(key, key_len);
@@ -311,14 +311,13 @@ static int cipso_v4_cache_check(const unsigned char *key,
 int cipso_v4_cache_add(const unsigned char *cipso_ptr,
 		       const struct netlbl_lsm_secattr *secattr)
 {
-	int bkt_size = READ_ONCE(cipso_v4_cache_bucketsize);
 	int ret_val = -EPERM;
 	u32 bkt;
 	struct cipso_v4_map_cache_entry *entry = NULL;
 	struct cipso_v4_map_cache_entry *old_entry = NULL;
 	u32 cipso_ptr_len;
 
-	if (!READ_ONCE(cipso_v4_cache_enabled) || bkt_size <= 0)
+	if (!cipso_v4_cache_enabled || cipso_v4_cache_bucketsize <= 0)
 		return 0;
 
 	cipso_ptr_len = cipso_ptr[1];
@@ -338,7 +337,7 @@ int cipso_v4_cache_add(const unsigned char *cipso_ptr,
 
 	bkt = entry->hash & (CIPSO_V4_CACHE_BUCKETS - 1);
 	spin_lock_bh(&cipso_v4_cache[bkt].lock);
-	if (cipso_v4_cache[bkt].size < bkt_size) {
+	if (cipso_v4_cache[bkt].size < cipso_v4_cache_bucketsize) {
 		list_add(&entry->list, &cipso_v4_cache[bkt].list);
 		cipso_v4_cache[bkt].size += 1;
 	} else {
@@ -487,7 +486,6 @@ void cipso_v4_doi_free(struct cipso_v4_doi *doi_def)
 		kfree(doi_def->map.std->lvl.local);
 		kfree(doi_def->map.std->cat.cipso);
 		kfree(doi_def->map.std->cat.local);
-		kfree(doi_def->map.std);
 		break;
 	}
 	kfree(doi_def);
@@ -535,10 +533,16 @@ int cipso_v4_doi_remove(u32 doi, struct netlbl_audit *audit_info)
 		ret_val = -ENOENT;
 		goto doi_remove_return;
 	}
+	if (!atomic_dec_and_test(&doi_def->refcount)) {
+		spin_unlock(&cipso_v4_doi_list_lock);
+		ret_val = -EBUSY;
+		goto doi_remove_return;
+	}
 	list_del_rcu(&doi_def->list);
 	spin_unlock(&cipso_v4_doi_list_lock);
 
-	cipso_v4_doi_putdef(doi_def);
+	cipso_v4_cache_invalidate();
+	call_rcu(&doi_def->rcu, cipso_v4_doi_free_rcu);
 	ret_val = 0;
 
 doi_remove_return:
@@ -595,6 +599,9 @@ void cipso_v4_doi_putdef(struct cipso_v4_doi *doi_def)
 
 	if (!atomic_dec_and_test(&doi_def->refcount))
 		return;
+	spin_lock(&cipso_v4_doi_list_lock);
+	list_del_rcu(&doi_def->list);
+	spin_unlock(&cipso_v4_doi_list_lock);
 
 	cipso_v4_cache_invalidate();
 	call_rcu(&doi_def->rcu, cipso_v4_doi_free_rcu);
@@ -1215,8 +1222,7 @@ static int cipso_v4_gentag_rbm(const struct cipso_v4_doi *doi_def,
 		/* This will send packets using the "optimized" format when
 		 * possible as specified in  section 3.4.2.6 of the
 		 * CIPSO draft. */
-		if (READ_ONCE(cipso_v4_rbm_optfmt) && ret_val > 0 &&
-		    ret_val <= 10)
+		if (cipso_v4_rbm_optfmt && ret_val > 0 && ret_val <= 10)
 			tag_len = 14;
 		else
 			tag_len = 4 + ret_val;
@@ -1619,7 +1625,7 @@ int cipso_v4_validate(const struct sk_buff *skb, unsigned char **option)
 			 * all the CIPSO validations here but it doesn't
 			 * really specify _exactly_ what we need to validate
 			 * ... so, just make it a sysctl tunable. */
-			if (READ_ONCE(cipso_v4_rbm_strictvalid)) {
+			if (cipso_v4_rbm_strictvalid) {
 				if (cipso_v4_map_lvl_valid(doi_def,
 							   tag[3]) < 0) {
 					err_offset = opt_iter + 3;

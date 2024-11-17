@@ -27,6 +27,4 @@ extern void opal_event_shutdown(void);
 
 bool cpu_core_split_required(void);
 
-void pnv_rng_init(void);
-
 #endif /* _POWERNV_H */

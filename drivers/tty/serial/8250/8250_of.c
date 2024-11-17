@@ -86,7 +86,7 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 	ret = of_address_to_resource(np, 0, &resource);
 	if (ret) {
 		dev_warn(&ofdev->dev, "invalid address\n");
-		goto err_unprepare;
+		goto out;
 	}
 
 	spin_lock_init(&port->lock);
@@ -94,17 +94,8 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 	port->mapsize = resource_size(&resource);
 
 	/* Check for shifted address mapping */
-	if (of_property_read_u32(np, "reg-offset", &prop) == 0) {
-		if (prop >= port->mapsize) {
-			dev_warn(&ofdev->dev, "reg-offset %u exceeds region size %pa\n",
-				 prop, &port->mapsize);
-			ret = -EINVAL;
-			goto err_unprepare;
-		}
-
+	if (of_property_read_u32(np, "reg-offset", &prop) == 0)
 		port->mapbase += prop;
-		port->mapsize -= prop;
-	}
 
 	/* Compatibility with the deprecated pxa driver and 8250_pxa drivers. */
 	if (of_device_is_compatible(np, "mrvl,mmp-uart"))
@@ -141,7 +132,7 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 			dev_warn(&ofdev->dev, "unsupported reg-io-width (%d)\n",
 				 prop);
 			ret = -EINVAL;
-			goto err_dispose;
+			goto out;
 		}
 	}
 
@@ -171,9 +162,7 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 		port->handle_irq = fsl8250_handle_irq;
 
 	return 0;
-err_dispose:
-	irq_dispose_mapping(port->irq);
-err_unprepare:
+out:
 	if (info->clk)
 		clk_disable_unprepare(info->clk);
 	return ret;
@@ -205,7 +194,7 @@ static int of_platform_serial_probe(struct platform_device *ofdev)
 	port_type = (unsigned long)match->data;
 	ret = of_platform_serial_setup(ofdev, port_type, &port, info);
 	if (ret)
-		goto err_free;
+		goto out;
 
 	switch (port_type) {
 	case PORT_8250 ... PORT_MAX_8250:
@@ -239,18 +228,15 @@ static int of_platform_serial_probe(struct platform_device *ofdev)
 		break;
 	}
 	if (ret < 0)
-		goto err_dispose;
+		goto out;
 
 	info->type = port_type;
 	info->line = ret;
 	platform_set_drvdata(ofdev, info);
 	return 0;
-err_dispose:
-	irq_dispose_mapping(port.irq);
-	if (info->clk)
-		clk_disable_unprepare(info->clk);
-err_free:
+out:
 	kfree(info);
+	irq_dispose_mapping(port.irq);
 	return ret;
 }
 

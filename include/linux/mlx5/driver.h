@@ -753,7 +753,12 @@ static inline u16 cmdif_rev(struct mlx5_core_dev *dev)
 
 static inline void *mlx5_vzalloc(unsigned long size)
 {
-	return kvzalloc(size, GFP_KERNEL);
+	void *rtn;
+
+	rtn = kzalloc(size, GFP_KERNEL | __GFP_NOWARN);
+	if (!rtn)
+		rtn = vzalloc(size);
+	return rtn;
 }
 
 static inline u32 mlx5_base_mkey(const u32 key)

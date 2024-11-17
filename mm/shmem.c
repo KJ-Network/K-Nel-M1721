@@ -101,12 +101,12 @@ struct shmem_falloc {
 #ifdef CONFIG_TMPFS
 static unsigned long shmem_default_max_blocks(void)
 {
-	return totalram_pages() / 2;
+	return totalram_pages / 2;
 }
 
 static unsigned long shmem_default_max_inodes(void)
 {
-	return min(totalram_pages() - totalhigh_pages(), totalram_pages() / 2);
+	return min(totalram_pages - totalhigh_pages, totalram_pages / 2);
 }
 #endif
 
@@ -436,7 +436,7 @@ static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
 	struct shmem_inode_info *info;
 	struct page *page;
 	unsigned long batch = sc ? sc->nr_to_scan : 128;
-	int split = 0;
+	int removed = 0, split = 0;
 
 	if (list_empty(&sbinfo->shrinklist))
 		return SHRINK_STOP;
@@ -451,6 +451,7 @@ static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
 		/* inode is about to be evicted */
 		if (!inode) {
 			list_del_init(&info->shrinklist);
+			removed++;
 			goto next;
 		}
 
@@ -458,12 +459,12 @@ static unsigned long shmem_unused_huge_shrink(struct shmem_sb_info *sbinfo,
 		if (round_up(inode->i_size, PAGE_SIZE) ==
 				round_up(inode->i_size, HPAGE_PMD_SIZE)) {
 			list_move(&info->shrinklist, &to_remove);
+			removed++;
 			goto next;
 		}
 
 		list_move(&info->shrinklist, &list);
 next:
-		sbinfo->shrinklist_len--;
 		if (!--batch)
 			break;
 	}
@@ -483,7 +484,7 @@ next:
 		inode = &info->vfs_inode;
 
 		if (nr_to_split && split >= nr_to_split)
-			goto move_back;
+			goto leave;
 
 		page = find_get_page(inode->i_mapping,
 				(inode->i_size & HPAGE_PMD_MASK) >> PAGE_SHIFT);
@@ -497,43 +498,37 @@ next:
 		}
 
 		/*
-		 * Move the inode on the list back to shrinklist if we failed
-		 * to lock the page at this time.
+		 * Leave the inode on the list if we failed to lock
+		 * the page at this time.
 		 *
 		 * Waiting for the lock may lead to deadlock in the
 		 * reclaim path.
 		 */
 		if (!trylock_page(page)) {
 			put_page(page);
-			goto move_back;
+			goto leave;
 		}
 
 		ret = split_huge_page(page);
 		unlock_page(page);
 		put_page(page);
 
-		/* If split failed move the inode on the list back to shrinklist */
+		/* If split failed leave the inode on the list */
 		if (ret)
-			goto move_back;
+			goto leave;
 
 		split++;
 drop:
 		list_del_init(&info->shrinklist);
-		goto put;
-move_back:
-		/*
-		 * Make sure the inode is either on the global list or deleted
-		 * from any local list before iput() since it could be deleted
-		 * in another thread once we put the inode (then the local list
-		 * is corrupted).
-		 */
-		spin_lock(&sbinfo->shrinklist_lock);
-		list_move(&info->shrinklist, &sbinfo->shrinklist);
-		sbinfo->shrinklist_len++;
-		spin_unlock(&sbinfo->shrinklist_lock);
-put:
+		removed++;
+leave:
 		iput(inode);
 	}
+
+	spin_lock(&sbinfo->shrinklist_lock);
+	list_splice_tail(&list, &sbinfo->shrinklist);
+	sbinfo->shrinklist_len -= removed;
+	spin_unlock(&sbinfo->shrinklist_lock);
 
 	return split;
 }
@@ -2478,8 +2473,7 @@ static void shmem_tag_pins(struct address_space *mapping)
 				slot = radix_tree_iter_retry(&iter);
 				continue;
 			}
-		} else if (!PageTail(page) && page_count(page) !=
-			   hpage_nr_pages(page) + total_mapcount(page)) {
+		} else if (page_count(page) - page_mapcount(page) > 1) {
 			radix_tree_tag_set(&mapping->page_tree, iter.index,
 					   SHMEM_TAG_PINNED);
 		}
@@ -2539,8 +2533,8 @@ static int shmem_wait_for_pins(struct address_space *mapping)
 				page = NULL;
 			}
 
-			if (page && page_count(page) !=
-			    hpage_nr_pages(page) + total_mapcount(page)) {
+			if (page &&
+			    page_count(page) - page_mapcount(page) != 1) {
 				if (scan < LAST_SCAN)
 					goto continue_resched;
 
@@ -3360,7 +3354,7 @@ static int shmem_parse_options(char *options, struct shmem_sb_info *sbinfo,
 			size = memparse(value,&rest);
 			if (*rest == '%') {
 				size <<= PAGE_SHIFT;
-				size *= totalram_pages();
+				size *= totalram_pages;
 				do_div(size, 100);
 				rest++;
 			}

@@ -71,7 +71,6 @@
 #include "audit.h"
 
 int selinux_android_netlink_route;
-int selinux_android_netlink_getneigh;
 int selinux_policycap_netpeer;
 int selinux_policycap_openperm;
 int selinux_policycap_alwaysnetwork;
@@ -80,8 +79,7 @@ static DEFINE_RWLOCK(policy_rwlock);
 
 static struct sidtab sidtab;
 struct policydb policydb;
-int ss_initialized;
-
+int ss_initialized __aligned(0x1000) __attribute__((section(".bss_rtic")));
 /*
  * The largest sequence number that has been used when
  * providing an access decision to the access vector cache.
@@ -1995,7 +1993,6 @@ static void security_load_policycaps(void)
 						  POLICYDB_CAPABILITY_ALWAYSNETWORK);
 
 	selinux_android_netlink_route = policydb.android_netlink_route;
-	selinux_android_netlink_getneigh = policydb.android_netlink_getneigh;
 	selinux_nlmsg_init();
 }
 

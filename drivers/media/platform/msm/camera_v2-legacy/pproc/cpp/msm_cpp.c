@@ -25,7 +25,6 @@
 #include <linux/timer.h>
 #include <linux/kernel.h>
 #include <linux/workqueue.h>
-#include <linux/clk/msm-clk.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-ioctl.h>
 #include <media/msmb_camera-legacy.h>
@@ -823,6 +822,13 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 	int rc = 0;
 	uint32_t vbif_version;
 
+	rc = cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
+			CAM_AHB_SVS_VOTE);
+	if (rc < 0) {
+		pr_err("%s: failed to vote for AHB\n", __func__);
+		goto ahb_vote_fail;
+	}
+
 	rc = msm_camera_regulator_enable(cpp_dev->cpp_vdd,
 		cpp_dev->num_reg, true);
 	if (rc < 0) {
@@ -841,13 +847,6 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 	if (rc < 0) {
 		pr_err("%s: clk enable failed\n", __func__);
 		goto clk_failed;
-	}
-
-	rc = cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
-			CAM_AHB_SVS_VOTE);
-	if (rc < 0) {
-		pr_err("%s: failed to vote for AHB\n", __func__);
-		goto ahb_vote_fail;
 	}
 
 	if (cpp_dev->state != CPP_STATE_BOOT) {
@@ -919,16 +918,16 @@ pwr_collapse_reset:
 	msm_cpp_update_gdscr_status(cpp_dev, false);
 	msm_camera_unregister_irq(cpp_dev->pdev, cpp_dev->irq, cpp_dev);
 req_irq_fail:
-	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
-		CAM_AHB_SUSPEND_VOTE) < 0)
-		pr_err("%s: failed to remove vote for AHB\n", __func__);
-ahb_vote_fail:
 	msm_camera_clk_enable(&cpp_dev->pdev->dev, cpp_dev->clk_info,
 		cpp_dev->cpp_clk, cpp_dev->num_clks, false);
 clk_failed:
 	msm_camera_regulator_enable(cpp_dev->cpp_vdd,
 		cpp_dev->num_reg, false);
 reg_enable_failed:
+	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
+		CAM_AHB_SUSPEND_VOTE) < 0)
+		pr_err("%s: failed to remove vote for AHB\n", __func__);
+ahb_vote_fail:
 	return rc;
 }
 
@@ -942,9 +941,6 @@ static void cpp_release_hardware(struct cpp_device *cpp_dev)
 	}
 	msm_cpp_delete_buff_queue(cpp_dev);
 	msm_cpp_update_gdscr_status(cpp_dev, false);
-	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
-		CAM_AHB_SUSPEND_VOTE) < 0)
-		pr_err("%s: failed to remove vote for AHB\n", __func__);
 	msm_camera_clk_enable(&cpp_dev->pdev->dev, cpp_dev->clk_info,
 		cpp_dev->cpp_clk, cpp_dev->num_clks, false);
 	msm_camera_regulator_enable(cpp_dev->cpp_vdd, cpp_dev->num_reg, false);
@@ -954,6 +950,9 @@ static void cpp_release_hardware(struct cpp_device *cpp_dev)
 	}
 	cpp_dev->stream_cnt = 0;
 
+	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CPP,
+		CAM_AHB_SUSPEND_VOTE) < 0)
+		pr_err("%s: failed to remove vote for AHB\n", __func__);
 }
 
 static int32_t cpp_load_fw(struct cpp_device *cpp_dev, char *fw_name_bin)
@@ -1180,9 +1179,8 @@ static int cpp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		VBIF_CLIENT_CPP, cpp_vbif_error_handler);
 
 	if (cpp_dev->cpp_open_cnt == 1) {
-		rc = cpp_init_mem(cpp_dev);
+		rc = cpp_init_hardware(cpp_dev);
 		if (rc < 0) {
-			pr_err("Error: init memory fail\n");
 			cpp_dev->cpp_open_cnt--;
 			cpp_dev->cpp_subscribe_list[i].active = 0;
 			cpp_dev->cpp_subscribe_list[i].vfh = NULL;
@@ -1190,8 +1188,9 @@ static int cpp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 			return rc;
 		}
 
-		rc = cpp_init_hardware(cpp_dev);
+		rc = cpp_init_mem(cpp_dev);
 		if (rc < 0) {
+			pr_err("Error: init memory fail\n");
 			cpp_dev->cpp_open_cnt--;
 			cpp_dev->cpp_subscribe_list[i].active = 0;
 			cpp_dev->cpp_subscribe_list[i].vfh = NULL;
@@ -1209,8 +1208,6 @@ static int cpp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	uint32_t i;
 	int rc = -1;
-	int counter = 0;
-	u32 result = 0;
 	struct cpp_device *cpp_dev = NULL;
 	struct msm_device_queue *processing_q = NULL;
 	struct msm_device_queue *eventData_q = NULL;
@@ -1281,55 +1278,6 @@ static int cpp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 			msm_camera_io_r(cpp_dev->cpp_hw_base + 0x88));
 		pr_debug("DEBUG_R1: 0x%x\n",
 			msm_camera_io_r(cpp_dev->cpp_hw_base + 0x8C));
-
-		/* mask IRQ status */
-		msm_camera_io_w(0xB, cpp_dev->cpp_hw_base + 0xC);
-
-		/* clear IRQ status */
-		msm_camera_io_w(0xFFFFF, cpp_dev->cpp_hw_base + 0x14);
-
-		/* MMSS_A_CPP_AXI_CMD = 0x16C, reset 0x1*/
-		msm_camera_io_w(0x1, cpp_dev->cpp_hw_base + 0x16C);
-
-		while (counter < MSM_CPP_POLL_RETRIES) {
-		     result = msm_camera_io_r(cpp_dev->cpp_hw_base + 0x10);
-		if (result & 0x2)
-		        break;
-		    /*
-		     * Below usleep values are chosen based on experiments
-		     * and this was the smallest number which works. This
-		     * sleep is needed to leave enough time for hardware
-		     * to update status register.
-		     */
-		    usleep_range(200, 250);
-		    counter++;
-		}
-
-		pr_debug("CPP AXI done counter %d result 0x%x\n",
-		    counter, result);
-
-		/* clear IRQ status */
-		msm_camera_io_w(0xFFFFF, cpp_dev->cpp_hw_base + 0x14);
-		counter = 0;
-		/* MMSS_A_CPP_RST_CMD_0 = 0x8, firmware reset = 0x3DF77 */
-		msm_camera_io_w(0x3DF77, cpp_dev->cpp_hw_base + 0x8);
-
-		while (counter < MSM_CPP_POLL_RETRIES) {
-		    result = msm_camera_io_r(cpp_dev->cpp_hw_base + 0x10);
-		    if (result & 0x1)
-			break;
-		    /*
-		     * Below usleep values are chosen based on experiments
-		     * and this was the smallest number which works. This
-		     * sleep is needed to leave enough time for hardware
-		     * to update status register.
-		     */
-		    usleep_range(200, 250);
-		    counter++;
-		}
-		pr_debug("CPP reset done counter %d result 0x%x\n",
-		    counter, result);
-
 		msm_camera_io_w(0x0, cpp_dev->base + MSM_CPP_MICRO_CLKEN_CTL);
 		msm_cpp_clear_timer(cpp_dev);
 		cpp_release_hardware(cpp_dev);
@@ -4146,7 +4094,6 @@ static int cpp_probe(struct platform_device *pdev)
 {
 	struct cpp_device *cpp_dev;
 	int rc = 0;
-	int i = 0;
 	CPP_DBG("E");
 
 	cpp_dev = kzalloc(sizeof(struct cpp_device), GFP_KERNEL);
@@ -4215,21 +4162,6 @@ static int cpp_probe(struct platform_device *pdev)
 	if (rc < 0) {
 		pr_err("%s: failed to get the clocks\n", __func__);
 		goto mem_err;
-	}
-
-	/* set memcore and mem periphery logic flags to 0 */
-	for (i = 0; i < cpp_dev->num_clks; i++) {
-		if ((strcmp(cpp_dev->clk_info[i].clk_name,
-			"cpp_core_clk") == 0) ||
-			(strcmp(cpp_dev->clk_info[i].clk_name,
-			"camss_cpp_axi_clk") == 0) ||
-			(strcmp(cpp_dev->clk_info[i].clk_name,
-			"micro_iface_clk") == 0)) {
-			msm_camera_set_clk_flags(cpp_dev->cpp_clk[i],
-				CLKFLAG_NORETAIN_MEM);
-			msm_camera_set_clk_flags(cpp_dev->cpp_clk[i],
-				CLKFLAG_NORETAIN_PERIPH);
-		}
 	}
 
 	rc = msm_camera_get_regulator_info(pdev, &cpp_dev->cpp_vdd,

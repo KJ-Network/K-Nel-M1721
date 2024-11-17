@@ -492,10 +492,10 @@ asmlinkage __visible void __init start_kernel(void)
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
 
-	/*
-	 * Interrupts are still disabled. Do necessary setups, then
-	 * enable them.
-	 */
+/*
+ * Interrupts are still disabled. Do necessary setups, then
+ * enable them
+ */
 	boot_cpu_init();
 	page_address_init();
 	pr_notice("%s", linux_banner);
@@ -577,17 +577,6 @@ asmlinkage __visible void __init start_kernel(void)
 	softirq_init();
 	timekeeping_init();
 	time_init();
-
-	/*
-	 * For best initial stack canary entropy, prepare it after:
-	 * - setup_arch() for any UEFI RNG entropy and boot cmdline access
-	 * - timekeeping_init() for ktime entropy used in random_init()
-	 * - time_init() for making random_get_entropy() work on some platforms
-	 * - random_init() to initialize the RNG from from early entropy sources
-	 */
-	random_init(command_line);
-	boot_init_stack_canary();
-
 	sched_clock_postinit();
 	printk_nmi_init();
 	perf_event_init();
@@ -722,7 +711,7 @@ static int __init initcall_blacklist(char *str)
 		}
 	} while (str_entry);
 
-	return 1;
+	return 0;
 }
 
 static bool __init_or_module initcall_blacklisted(initcall_t fn)
@@ -938,9 +927,7 @@ static noinline void __init kernel_init_freeable(void);
 bool rodata_enabled __ro_after_init = true;
 static int __init set_debug_rodata(char *str)
 {
-	if (strtobool(str, &rodata_enabled))
-		pr_warn("Invalid option string for rodata: '%s'\n", str);
-	return 1;
+	return strtobool(str, &rodata_enabled);
 }
 __setup("rodata=", set_debug_rodata);
 #endif

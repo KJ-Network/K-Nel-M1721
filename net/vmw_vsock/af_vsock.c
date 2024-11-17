@@ -279,8 +279,7 @@ EXPORT_SYMBOL_GPL(vsock_insert_connected);
 void vsock_remove_bound(struct vsock_sock *vsk)
 {
 	spin_lock_bh(&vsock_table_lock);
-	if (__vsock_in_bound_table(vsk))
-		__vsock_remove_bound(vsk);
+	__vsock_remove_bound(vsk);
 	spin_unlock_bh(&vsock_table_lock);
 }
 EXPORT_SYMBOL_GPL(vsock_remove_bound);
@@ -288,8 +287,7 @@ EXPORT_SYMBOL_GPL(vsock_remove_bound);
 void vsock_remove_connected(struct vsock_sock *vsk)
 {
 	spin_lock_bh(&vsock_table_lock);
-	if (__vsock_in_connected_table(vsk))
-		__vsock_remove_connected(vsk);
+	__vsock_remove_connected(vsk);
 	spin_unlock_bh(&vsock_table_lock);
 }
 EXPORT_SYMBOL_GPL(vsock_remove_connected);
@@ -325,10 +323,35 @@ struct sock *vsock_find_connected_socket(struct sockaddr_vm *src,
 }
 EXPORT_SYMBOL_GPL(vsock_find_connected_socket);
 
+static bool vsock_in_bound_table(struct vsock_sock *vsk)
+{
+	bool ret;
+
+	spin_lock_bh(&vsock_table_lock);
+	ret = __vsock_in_bound_table(vsk);
+	spin_unlock_bh(&vsock_table_lock);
+
+	return ret;
+}
+
+static bool vsock_in_connected_table(struct vsock_sock *vsk)
+{
+	bool ret;
+
+	spin_lock_bh(&vsock_table_lock);
+	ret = __vsock_in_connected_table(vsk);
+	spin_unlock_bh(&vsock_table_lock);
+
+	return ret;
+}
+
 void vsock_remove_sock(struct vsock_sock *vsk)
 {
-	vsock_remove_bound(vsk);
-	vsock_remove_connected(vsk);
+	if (vsock_in_bound_table(vsk))
+		vsock_remove_bound(vsk);
+
+	if (vsock_in_connected_table(vsk))
+		vsock_remove_connected(vsk);
 }
 EXPORT_SYMBOL_GPL(vsock_remove_sock);
 
@@ -459,7 +482,8 @@ static void vsock_pending_work(struct work_struct *work)
 	 * incoming packets can't find this socket, and to reduce the reference
 	 * count.
 	 */
-	vsock_remove_connected(vsk);
+	if (vsock_in_connected_table(vsk))
+		vsock_remove_connected(vsk);
 
 	sk->sk_state = SS_FREE;
 
@@ -1149,8 +1173,6 @@ static int vsock_stream_connect(struct socket *sock, struct sockaddr *addr,
 		 * non-blocking call.
 		 */
 		err = -EALREADY;
-		if (flags & O_NONBLOCK)
-			goto out;
 		break;
 	default:
 		if ((sk->sk_state == VSOCK_SS_LISTEN) ||
@@ -1205,14 +1227,7 @@ static int vsock_stream_connect(struct socket *sock, struct sockaddr *addr,
 			 * timeout fires.
 			 */
 			sock_hold(sk);
-
-			/* If the timeout function is already scheduled,
-			 * reschedule it, then ungrab the socket refcount to
-			 * keep it balanced.
-			 */
-			if (mod_delayed_work(system_wq, &vsk->connect_work,
-					     timeout))
-				sock_put(sk);
+			schedule_delayed_work(&vsk->connect_work, timeout);
 
 			/* Skip ahead to preserve error code set above. */
 			goto out_wait;
@@ -1227,7 +1242,6 @@ static int vsock_stream_connect(struct socket *sock, struct sockaddr *addr,
 			sk->sk_state = SS_UNCONNECTED;
 			sock->state = SS_UNCONNECTED;
 			vsock_transport_cancel_pkt(vsk);
-			vsock_remove_connected(vsk);
 			goto out_wait;
 		} else if (timeout == 0) {
 			err = -ETIMEDOUT;

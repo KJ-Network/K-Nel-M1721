@@ -1011,11 +1011,11 @@ static u64 port100_get_command_type_mask(struct port100 *dev)
 
 	skb = port100_alloc_skb(dev, 0);
 	if (!skb)
-		return 0;
+		return -ENOMEM;
 
 	resp = port100_send_cmd_sync(dev, PORT100_CMD_GET_COMMAND_TYPE, skb);
 	if (IS_ERR(resp))
-		return 0;
+		return PTR_ERR(resp);
 
 	if (resp->len < 8)
 		mask = 0;
@@ -1617,9 +1617,7 @@ free_nfc_dev:
 	nfc_digital_free_device(dev->nfc_digital_dev);
 
 error:
-	usb_kill_urb(dev->in_urb);
 	usb_free_urb(dev->in_urb);
-	usb_kill_urb(dev->out_urb);
 	usb_free_urb(dev->out_urb);
 	usb_put_dev(dev->udev);
 

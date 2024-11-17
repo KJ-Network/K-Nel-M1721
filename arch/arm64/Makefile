@@ -10,7 +10,7 @@
 #
 # Copyright (C) 1995-2001 by Russell King
 
-LDFLAGS_vmlinux	:=--no-undefined -X -z norelro
+LDFLAGS_vmlinux	:=--no-undefined -X
 CPPFLAGS_vmlinux.lds = -DTEXT_OFFSET=$(TEXT_OFFSET)
 GZFLAGS		:=-9
 
@@ -18,7 +18,7 @@ ifeq ($(CONFIG_RELOCATABLE), y)
 # Pass --no-apply-dynamic-relocs to restore pre-binutils-2.27 behaviour
 # for relative relocs, since this leads to better Image compression
 # with the relocation offsets always being zero.
-LDFLAGS_vmlinux		+= -shared -Bsymbolic -z notext \
+LDFLAGS_vmlinux		+= -pie -shared -Bsymbolic \
 			$(call ld-option, --no-apply-dynamic-relocs)
 endif
 
@@ -99,28 +99,14 @@ KBUILD_AFLAGS	+= $(lseinstr) $(vdso32)
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 AS		+= -EB
-# Prefer the baremetal ELF build target, but not all toolchains include
-LDFLAGS		+= -EB $(call ld-option, -maarch64elfb, -maarch64linuxb)
+LD		+= -EB
 UTS_MACHINE	:= aarch64_be
 else
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
-# Same as above, prefer ELF but fall back to linux target if needed.
-LDFLAGS		+= -EL $(call ld-option, -maarch64elf, -maarch64linux)
+LD		+= -EL
 UTS_MACHINE	:= aarch64
 endif
-
-# Optimize for CPU
-KBUILD_CFLAGS	+= $(call cc-option,-march=armv8-a+crypto+crc,) $(call cc-option,-mcpu=cortex-a53+crypto+crc,)
-
-# Cortex-A53 optimizations
-arch-$(CONFIG_ARCH_MSM8953)	:= $(call cc-option,-mcpu=cortex-a53+crc+crypto,-march=armv8-a+crc+crypto)
-tune-$(CONFIG_ARCH_MSM8953)	:= -mtune=cortex-a53
-arch-$(CONFIG_ARCH_SDM450)	:= $(call cc-option,-mcpu=cortex-a53+crc+crypto,-march=armv8-a+crc+crypto)
-tune-$(CONFIG_ARCH_SDM450)	:= -mtune=cortex-a53
-
-KBUILD_CFLAGS	+= $(arch-y) $(tune-y)
-KBUILD_AFLAGS	+= $(arch-y) $(tune-y)
 
 CHECKFLAGS	+= -D__aarch64__
 

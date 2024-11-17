@@ -37,7 +37,6 @@
 #include <linux/string.h>
 
 #include <asm/alternative.h>
-#include <asm/cpufeature.h>
 #include <asm/fpsimd.h>
 #include <asm/hw_breakpoint.h>
 #include <asm/lse.h>
@@ -223,8 +222,9 @@ static inline void spin_lock_prefetch(const void *ptr)
 
 #endif
 
-void cpu_enable_pan(const struct arm64_cpu_capabilities *__unused);
-void cpu_enable_cache_maint_trap(const struct arm64_cpu_capabilities *__unused);
+int cpu_enable_pan(void *__unused);
+int cpu_enable_uao(void *__unused);
+int cpu_enable_cache_maint_trap(void *__unused);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ASM_PROCESSOR_H */

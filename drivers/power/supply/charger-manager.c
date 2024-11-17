@@ -1489,7 +1489,6 @@ static const struct of_device_id charger_manager_match[] = {
 	},
 	{},
 };
-MODULE_DEVICE_TABLE(of, charger_manager_match);
 
 static struct charger_desc *of_cm_parse_desc(struct device *dev)
 {

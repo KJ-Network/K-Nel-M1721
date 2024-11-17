@@ -1,5 +1,4 @@
 /* Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1080,7 +1079,7 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 				rc = cam_sensor_i2c_command_parser(
 					&fctrl->io_master_info,
 					i2c_reg_settings,
-					&cmd_desc[i], 1, NULL);
+					&cmd_desc[i], 1);
 				if (rc < 0) {
 					CAM_ERR(CAM_FLASH,
 					"pkt parsing failed: %d", rc);
@@ -1160,7 +1159,7 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 		cmd_desc = (struct cam_cmd_buf_desc *)(offset);
 		rc = cam_sensor_i2c_command_parser(
 			&fctrl->io_master_info,
-			i2c_reg_settings, cmd_desc, 1, NULL);
+			i2c_reg_settings, cmd_desc, 1);
 		if (rc) {
 			CAM_ERR(CAM_FLASH,
 			"Failed in parsing i2c packets");
@@ -1191,7 +1190,7 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 		cmd_desc = (struct cam_cmd_buf_desc *)(offset);
 		rc = cam_sensor_i2c_command_parser(
 			&fctrl->io_master_info,
-			i2c_reg_settings, cmd_desc, 1, NULL);
+			i2c_reg_settings, cmd_desc, 1);
 		if (rc) {
 			CAM_ERR(CAM_FLASH,
 			"Failed in parsing i2c NRT packets");

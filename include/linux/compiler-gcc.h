@@ -107,7 +107,7 @@
 #define __weak		__attribute__((weak))
 #define __alias(symbol)	__attribute__((alias(#symbol)))
 
-#ifdef CONFIG_RETPOLINE
+#ifdef RETPOLINE
 #define __noretpoline __attribute__((indirect_branch("keep")))
 #endif
 

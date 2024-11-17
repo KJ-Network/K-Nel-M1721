@@ -325,8 +325,8 @@ static ssize_t microcode_write(struct file *file, const char __user *buf,
 {
 	ssize_t ret = -EINVAL;
 
-	if ((len >> PAGE_SHIFT) > totalram_pages()) {
-		pr_err("too much data (max %ld pages)\n", totalram_pages());
+	if ((len >> PAGE_SHIFT) > totalram_pages) {
+		pr_err("too much data (max %ld pages)\n", totalram_pages);
 		return ret;
 	}
 
@@ -586,9 +586,9 @@ static struct subsys_interface mc_cpu_interface = {
 };
 
 /**
- * microcode_bsp_resume - Update boot CPU microcode during resume.
+ * mc_bp_resume - Update boot CPU microcode during resume.
  */
-void microcode_bsp_resume(void)
+static void mc_bp_resume(void)
 {
 	int cpu = smp_processor_id();
 	struct ucode_cpu_info *uci = ucode_cpu_info + cpu;
@@ -600,7 +600,7 @@ void microcode_bsp_resume(void)
 }
 
 static struct syscore_ops mc_syscore_ops = {
-	.resume			= microcode_bsp_resume,
+	.resume			= mc_bp_resume,
 };
 
 static int mc_cpu_online(unsigned int cpu)

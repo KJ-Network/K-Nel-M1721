@@ -701,7 +701,11 @@ static int sfq_change(struct Qdisc *sch, struct nlattr *opt)
 
 static void *sfq_alloc(size_t sz)
 {
-	return  kvmalloc(sz, GFP_KERNEL);
+	void *ptr = kmalloc(sz, GFP_KERNEL | __GFP_NOWARN);
+
+	if (!ptr)
+		ptr = vmalloc(sz);
+	return ptr;
 }
 
 static void sfq_free(void *addr)

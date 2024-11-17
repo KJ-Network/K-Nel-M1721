@@ -132,25 +132,25 @@ int __init security_module_enable(const char *module)
 
 /* Security operations */
 
-int security_binder_set_context_mgr(const struct cred *mgr)
+int security_binder_set_context_mgr(struct task_struct *mgr)
 {
 	return call_int_hook(binder_set_context_mgr, 0, mgr);
 }
 
-int security_binder_transaction(const struct cred *from,
-				const struct cred *to)
+int security_binder_transaction(struct task_struct *from,
+				struct task_struct *to)
 {
 	return call_int_hook(binder_transaction, 0, from, to);
 }
 
-int security_binder_transfer_binder(const struct cred *from,
-				    const struct cred *to)
+int security_binder_transfer_binder(struct task_struct *from,
+				    struct task_struct *to)
 {
 	return call_int_hook(binder_transfer_binder, 0, from, to);
 }
 
-int security_binder_transfer_file(const struct cred *from,
-				  const struct cred *to, struct file *file)
+int security_binder_transfer_file(struct task_struct *from,
+				  struct task_struct *to, struct file *file)
 {
 	return call_int_hook(binder_transfer_file, 0, from, to, file);
 }
@@ -1042,6 +1042,11 @@ int security_task_kill(struct task_struct *p, struct siginfo *info,
 	return call_int_hook(task_kill, 0, p, info, sig, secid);
 }
 
+int security_task_wait(struct task_struct *p)
+{
+	return call_int_hook(task_wait, 0, p);
+}
+
 int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 			 unsigned long arg4, unsigned long arg5)
 {
@@ -1814,6 +1819,7 @@ struct security_hook_heads security_hook_heads __lsm_ro_after_init = {
 	.task_movememory =
 		LIST_HEAD_INIT(security_hook_heads.task_movememory),
 	.task_kill =	LIST_HEAD_INIT(security_hook_heads.task_kill),
+	.task_wait =	LIST_HEAD_INIT(security_hook_heads.task_wait),
 	.task_prctl =	LIST_HEAD_INIT(security_hook_heads.task_prctl),
 	.task_to_inode =
 		LIST_HEAD_INIT(security_hook_heads.task_to_inode),

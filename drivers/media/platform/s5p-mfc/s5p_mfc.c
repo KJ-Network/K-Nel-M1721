@@ -1160,7 +1160,7 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 	spin_lock_init(&dev->condlock);
 	dev->plat_dev = pdev;
 	if (!dev->plat_dev) {
-		mfc_err("No platform data specified\n");
+		dev_err(&pdev->dev, "No platform data specified\n");
 		return -ENODEV;
 	}
 

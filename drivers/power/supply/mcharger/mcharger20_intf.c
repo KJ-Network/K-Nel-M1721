@@ -22,6 +22,7 @@
 #include <linux/types.h>
 #include <linux/device.h>
 #include <linux/kobject.h>
+#include <linux/msm_bcl.h>
 #include <linux/pm.h>
 #include <linux/printk.h>
 #include <linux/power_supply.h>
@@ -91,8 +92,9 @@ static int p20_check_leave_status(void)
 		return ret;
 	}
 
-	ichg = g_get_prop_batt_current_now();
-    if (ichg < 0) {
+	ret = msm_bcl_read(BCL_PARAM_CURRENT, &ichg);
+
+    if (ichg != 0) {
         neg = 1;
         ichg /= -1000;
     } else {
@@ -242,10 +244,9 @@ static int charging_set_ta20_current_pattern(u32 chr_vol) {
     get_monotonic_boottime(&tmp_ptime);
     tmp_cptime = tmp_dtime(j);
     mcharger_set_high_usb_chg_current(500);
-    if (tmp_cptime <= 159) {
-		usleep_range(1000 * (160 - tmp_cptime), 1000 * (160 - tmp_cptime));
-	}
-	
+    if (tmp_cptime <= 159)
+        usleep_range(1000 * (160 - tmp_cptime), 1000 * (160 - tmp_cptime));
+
 	get_monotonic_boottime(&ptime[j]);
 	cptime[j][0] = 160;
 	cptime[j][1] = dtime(j);

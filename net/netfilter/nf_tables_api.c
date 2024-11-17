@@ -119,7 +119,6 @@ static struct nft_trans *nft_trans_alloc(struct nft_ctx *ctx, int msg_type,
 	if (trans == NULL)
 		return NULL;
 
-	INIT_LIST_HEAD(&trans->list);
 	trans->msg_type = msg_type;
 	trans->ctx	= *ctx;
 
@@ -1757,27 +1756,23 @@ struct nft_expr *nft_expr_init(const struct nft_ctx *ctx,
 
 	err = nf_tables_expr_parse(ctx, nla, &info);
 	if (err < 0)
-		goto err_expr_parse;
-
-	err = -EOPNOTSUPP;
-	if (!(info.ops->type->flags & NFT_EXPR_STATEFUL))
-		goto err_expr_stateful;
+		goto err1;
 
 	err = -ENOMEM;
 	expr = kzalloc(info.ops->size, GFP_KERNEL);
 	if (expr == NULL)
-		goto err_expr_stateful;
+		goto err2;
 
 	err = nf_tables_newexpr(ctx, &info, expr);
 	if (err < 0)
-		goto err_expr_new;
+		goto err3;
 
 	return expr;
-err_expr_new:
+err3:
 	kfree(expr);
-err_expr_stateful:
+err2:
 	module_put(info.ops->type->owner);
-err_expr_parse:
+err1:
 	return ERR_PTR(err);
 }
 
@@ -2515,7 +2510,7 @@ cont:
 		list_for_each_entry(i, &ctx->table->sets, list) {
 			int tmp;
 
-			if (!nft_is_active_next(ctx->net, i))
+			if (!nft_is_active_next(ctx->net, set))
 				continue;
 			if (!sscanf(i->name, name, &tmp))
 				continue;

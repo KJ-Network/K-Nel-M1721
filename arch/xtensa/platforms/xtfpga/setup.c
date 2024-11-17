@@ -54,12 +54,8 @@ void platform_power_off(void)
 
 void platform_restart(void)
 {
-	/* Try software reset first. */
-	WRITE_ONCE(*(u32 *)XTFPGA_SWRST_VADDR, 0xdead);
-
-	/* If software reset did not work, flush and reset the mmu,
-	 * simulate a processor reset, and jump to the reset vector.
-	 */
+	/* Flush and reset the mmu, simulate a processor reset, and
+	 * jump to the reset vector. */
 	cpu_reset();
 	/* control never gets here */
 }
@@ -89,7 +85,7 @@ void __init platform_calibrate_ccount(void)
 
 #endif
 
-#ifdef CONFIG_USE_OF
+#ifdef CONFIG_OF
 
 static void __init xtfpga_clk_setup(struct device_node *np)
 {
@@ -152,7 +148,6 @@ static int __init machine_setup(void)
 
 	if ((eth = of_find_compatible_node(eth, NULL, "opencores,ethoc")))
 		update_local_mac(eth);
-	of_node_put(eth);
 	return 0;
 }
 arch_initcall(machine_setup);
@@ -308,4 +303,4 @@ static int __init xtavnet_init(void)
  */
 arch_initcall(xtavnet_init);
 
-#endif /* CONFIG_USE_OF */
+#endif /* CONFIG_OF */

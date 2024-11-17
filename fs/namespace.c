@@ -1687,55 +1687,14 @@ static inline bool may_mount(void)
 	return ns_capable(current->nsproxy->mnt_ns->user_ns, CAP_SYS_ADMIN);
 }
 
-#ifdef	CONFIG_MANDATORY_FILE_LOCKING
-static bool may_mandlock(void)
-{
-	pr_warn_once("======================================================\n"
-		     "WARNING: the mand mount option is being deprecated and\n"
-		     "         will be removed in v5.15!\n"
-		     "======================================================\n");
-	return capable(CAP_SYS_ADMIN);
-}
-#else
 static inline bool may_mandlock(void)
 {
-	pr_warn("VFS: \"mand\" mount option not supported");
+#ifndef	CONFIG_MANDATORY_FILE_LOCKING
 	return false;
-}
 #endif
-static int can_umount(const struct path *path, int flags)
-{
-	struct mount *mnt = real_mount(path->mnt);
-
-	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
-		return -EINVAL;
-	if (!may_mount())
-		return -EPERM;
-	if (path->dentry != path->mnt->mnt_root)
-		return -EINVAL;
-	if (!check_mnt(mnt))
-		return -EINVAL;
-	if (mnt->mnt.mnt_flags & MNT_LOCKED) /* Check optimistically */
-		return -EINVAL;
-	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
-		return -EPERM;
-	return 0;
+	return capable(CAP_SYS_ADMIN);
 }
 
-int path_umount(struct path *path, int flags)
-{
-	struct mount *mnt = real_mount(path->mnt);
-	int ret;
-
-	ret = can_umount(path, flags);
-	if (!ret)
-		ret = do_umount(mnt, flags);
-
-	/* we mustn't call path_put() as that would clear mnt_expiry_mark */
-	dput(path->dentry);
-	mntput_no_expire(mnt);
-	return ret;
-}
 /*
  * Now umount can handle mount points as well as block devices.
  * This is important for filesystems which use unnamed block devices.
@@ -1912,20 +1871,6 @@ void drop_collected_mounts(struct vfsmount *mnt)
 	namespace_unlock();
 }
 
-static bool has_locked_children(struct mount *mnt, struct dentry *dentry)
-{
-	struct mount *child;
-
-	list_for_each_entry(child, &mnt->mnt_mounts, mnt_child) {
-		if (!is_subdir(child->mnt_mountpoint, dentry))
-			continue;
-
-		if (child->mnt.mnt_flags & MNT_LOCKED)
-			return true;
-	}
-	return false;
-}
-
 /**
  * clone_private_mount - create a private clone of a path
  *
@@ -1940,27 +1885,16 @@ struct vfsmount *clone_private_mount(struct path *path)
 	struct mount *old_mnt = real_mount(path->mnt);
 	struct mount *new_mnt;
 
-	down_read(&namespace_sem);
 	if (IS_MNT_UNBINDABLE(old_mnt))
-		goto invalid;
+		return ERR_PTR(-EINVAL);
 
-	if (!check_mnt(old_mnt))
-		goto invalid;
-
-	if (has_locked_children(old_mnt, path->dentry))
-		goto invalid;
-
+	down_read(&namespace_sem);
 	new_mnt = clone_mnt(old_mnt, path->dentry, CL_PRIVATE);
 	up_read(&namespace_sem);
-
 	if (IS_ERR(new_mnt))
 		return ERR_CAST(new_mnt);
 
 	return &new_mnt->mnt;
-
-invalid:
-	up_read(&namespace_sem);
-	return ERR_PTR(-EINVAL);
 }
 EXPORT_SYMBOL_GPL(clone_private_mount);
 
@@ -2274,6 +2208,19 @@ static int do_change_type(struct path *path, int flag)
  out_unlock:
 	namespace_unlock();
 	return err;
+}
+
+static bool has_locked_children(struct mount *mnt, struct dentry *dentry)
+{
+	struct mount *child;
+	list_for_each_entry(child, &mnt->mnt_mounts, mnt_child) {
+		if (!is_subdir(child->mnt_mountpoint, dentry))
+			continue;
+
+		if (child->mnt.mnt_flags & MNT_LOCKED)
+			return true;
+	}
+	return false;
 }
 
 /*

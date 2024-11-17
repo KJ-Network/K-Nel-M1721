@@ -1540,7 +1540,10 @@ static int resize_platform_label_table(struct net *net, size_t limit)
 	unsigned index;
 
 	if (size) {
-		labels = kvzalloc(size, GFP_KERNEL);
+		labels = kzalloc(size, GFP_KERNEL | __GFP_NOWARN | __GFP_NORETRY);
+		if (!labels)
+			labels = vzalloc(size);
+
 		if (!labels)
 			goto nolabels;
 	}

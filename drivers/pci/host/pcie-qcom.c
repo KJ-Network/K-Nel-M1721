@@ -562,15 +562,10 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	ret = dw_pcie_host_init(pp);
 	if (ret) {
 		dev_err(dev, "cannot initialize host\n");
-		goto err_phy_exit;
+		return ret;
 	}
 
 	return 0;
-
-err_phy_exit:
-	phy_exit(pcie->phy);
-
-	return ret;
 }
 
 static const struct of_device_id qcom_pcie_match[] = {

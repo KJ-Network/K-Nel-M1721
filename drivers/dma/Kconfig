@@ -238,7 +238,7 @@ config INTEL_IDMA64
 
 config INTEL_IOATDMA
 	tristate "Intel I/OAT DMA support"
-	depends on PCI && X86_64 && !UML
+	depends on PCI && X86_64
 	select DMA_ENGINE
 	select DMA_ENGINE_RAID
 	select DCA

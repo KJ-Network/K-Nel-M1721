@@ -156,14 +156,12 @@ void jfs_evict_inode(struct inode *inode)
 		dquot_initialize(inode);
 
 		if (JFS_IP(inode)->fileset == FILESYSTEM_I) {
-			struct inode *ipimap = JFS_SBI(inode->i_sb)->ipimap;
 			truncate_inode_pages_final(&inode->i_data);
 
 			if (test_cflag(COMMIT_Freewmap, inode))
 				jfs_free_zero_link(inode);
 
-			if (ipimap && JFS_IP(ipimap)->i_imap)
-				diFree(inode);
+			diFree(inode);
 
 			/*
 			 * Free the inode from the quota allocation.

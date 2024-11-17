@@ -98,7 +98,7 @@ EXPORT_SYMBOL(sysctl_max_skb_frags);
 static void skb_panic(struct sk_buff *skb, unsigned int sz, void *addr,
 		      const char msg[])
 {
-	pr_emerg("%s: text:%px len:%d put:%d head:%px data:%px tail:%#lx end:%#lx dev:%s\n",
+	pr_emerg("%s: text:%p len:%d put:%d head:%p data:%p tail:%#lx end:%#lx dev:%s\n",
 		 msg, addr, skb->len, sz, skb->head, skb->data,
 		 (unsigned long)skb->tail, (unsigned long)skb->end,
 		 skb->dev ? skb->dev->name : "<NULL>");
@@ -1077,7 +1077,7 @@ static void skb_headers_offset_update(struct sk_buff *skb, int off)
 	skb->inner_mac_header += off;
 }
 
-void skb_copy_header(struct sk_buff *new, const struct sk_buff *old)
+static void copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 {
 	__copy_skb_header(new, old);
 
@@ -1085,7 +1085,6 @@ void skb_copy_header(struct sk_buff *new, const struct sk_buff *old)
 	skb_shinfo(new)->gso_segs = skb_shinfo(old)->gso_segs;
 	skb_shinfo(new)->gso_type = skb_shinfo(old)->gso_type;
 }
-EXPORT_SYMBOL(skb_copy_header);
 
 static inline int skb_alloc_rx_flag(const struct sk_buff *skb)
 {
@@ -1129,7 +1128,7 @@ struct sk_buff *skb_copy(const struct sk_buff *skb, gfp_t gfp_mask)
 	if (skb_copy_bits(skb, -headerlen, n->head, headerlen + skb->len))
 		BUG();
 
-	skb_copy_header(n, skb);
+	copy_skb_header(n, skb);
 	return n;
 }
 EXPORT_SYMBOL(skb_copy);
@@ -1192,7 +1191,7 @@ struct sk_buff *__pskb_copy_fclone(struct sk_buff *skb, int headroom,
 		skb_clone_fraglist(n);
 	}
 
-	skb_copy_header(n, skb);
+	copy_skb_header(n, skb);
 out:
 	return n;
 }
@@ -1363,7 +1362,7 @@ struct sk_buff *skb_copy_expand(const struct sk_buff *skb,
 			  skb->len + head_copy_len))
 		BUG();
 
-	skb_copy_header(n, skb);
+	copy_skb_header(n, skb);
 
 	skb_headers_offset_update(n, newheadroom - oldheadroom);
 
@@ -1723,7 +1722,7 @@ unsigned char *__pskb_pull_tail(struct sk_buff *skb, int delta)
 		/* Free pulled out fragments. */
 		while ((list = skb_shinfo(skb)->frag_list) != insp) {
 			skb_shinfo(skb)->frag_list = list->next;
-			consume_skb(list);
+			kfree_skb(list);
 		}
 		/* And insert new clone at head. */
 		if (clone) {
@@ -2295,11 +2294,8 @@ skb_zerocopy_headlen(const struct sk_buff *from)
 
 	if (!from->head_frag ||
 	    skb_headlen(from) < L1_CACHE_BYTES ||
-	    skb_shinfo(from)->nr_frags >= MAX_SKB_FRAGS) {
+	    skb_shinfo(from)->nr_frags >= MAX_SKB_FRAGS)
 		hlen = skb_headlen(from);
-		if (!hlen)
-			hlen = from->len;
-	}
 
 	if (skb_has_frag_list(from))
 		hlen = from->len;
@@ -3911,7 +3907,7 @@ static bool skb_may_tx_timestamp(struct sock *sk, bool tsonly)
 {
 	bool ret;
 
-	if (likely(READ_ONCE(sysctl_tstamp_allow_data) || tsonly))
+	if (likely(sysctl_tstamp_allow_data || tsonly))
 		return true;
 
 	read_lock_bh(&sk->sk_callback_lock);
@@ -4958,7 +4954,7 @@ static int pskb_carve_frag_list(struct sk_buff *skb,
 	/* Free pulled out fragments. */
 	while ((list = shinfo->frag_list) != insp) {
 		shinfo->frag_list = list->next;
-		consume_skb(list);
+		kfree_skb(list);
 	}
 	/* And insert new clone at head. */
 	if (clone) {

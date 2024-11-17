@@ -26,7 +26,6 @@
 #include <linux/hardirq.h>
 
 #include <asm/fpsimd.h>
-#include <asm/cpufeature.h>
 #include <asm/cputype.h>
 
 #define FPEXC_IOF	(1 << 0)

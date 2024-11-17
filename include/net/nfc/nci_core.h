@@ -42,7 +42,6 @@ enum nci_flag {
 	NCI_UP,
 	NCI_DATA_EXCHANGE,
 	NCI_DATA_EXCHANGE_TO,
-	NCI_UNREG,
 };
 
 /* NCI device states */

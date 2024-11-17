@@ -38,7 +38,6 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_edid.h>
-#include <drm/drm_client.h>
 
 /**
  * DOC: output probing helper overview
@@ -159,8 +158,7 @@ void drm_kms_helper_poll_enable_locked(struct drm_device *dev)
 	}
 
 	if (poll)
-		queue_delayed_work(system_power_efficient_wq,
-				   &dev->mode_config.output_poll_work, delay);
+		schedule_delayed_work(&dev->mode_config.output_poll_work, delay);
 }
 EXPORT_SYMBOL(drm_kms_helper_poll_enable_locked);
 
@@ -275,8 +273,8 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 		 */
 		dev->mode_config.delayed_event = true;
 		if (dev->mode_config.poll_enabled)
-			queue_delayed_work(system_power_efficient_wq,
-					   &dev->mode_config.output_poll_work, 0);
+			schedule_delayed_work(&dev->mode_config.output_poll_work,
+					      0);
 	}
 
 	/* Re-enable polling in case the global poll config changed. */
@@ -378,8 +376,6 @@ void drm_kms_helper_hotplug_event(struct drm_device *dev)
 	drm_sysfs_hotplug_event(dev);
 	if (dev->mode_config.funcs->output_poll_changed)
 		dev->mode_config.funcs->output_poll_changed(dev);
-
-	drm_client_dev_hotplug(dev);
 }
 EXPORT_SYMBOL(drm_kms_helper_hotplug_event);
 
@@ -464,8 +460,7 @@ out:
 		drm_kms_helper_hotplug_event(dev);
 
 	if (repoll)
-		queue_delayed_work(system_power_efficient_wq,
-				   delayed_work, DRM_OUTPUT_POLL_PERIOD);
+		schedule_delayed_work(delayed_work, DRM_OUTPUT_POLL_PERIOD);
 }
 
 /**

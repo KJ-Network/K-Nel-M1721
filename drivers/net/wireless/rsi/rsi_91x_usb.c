@@ -42,7 +42,7 @@ static int rsi_usb_card_write(struct rsi_hw *adapter,
 			      buf,
 			      len,
 			      &transfer,
-			      USB_CTRL_SET_TIMEOUT);
+			      HZ * 5);
 
 	if (status < 0) {
 		rsi_dbg(ERR_ZONE,

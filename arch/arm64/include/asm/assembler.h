@@ -116,13 +116,6 @@
 	.endm
 
 /*
- * Clear Branch History instruction
- */
-	.macro clearbhb
-	hint	#22
-	.endm
-
-/*
  * Sanitise a 64-bit bounded index wrt speculation, returning zero if out
  * of bounds.
  */
@@ -386,32 +379,20 @@ alternative_endif
  * 	size:		size of the region
  * 	Corrupts:	kaddr, size, tmp1, tmp2
  */
-	.macro __dcache_op_workaround_clean_cache, op, kaddr
-alternative_if_not ARM64_WORKAROUND_CLEAN_CACHE
-	dc	\op, \kaddr
-alternative_else
-	dc	civac, \kaddr
-alternative_endif
-	.endm
-
 	.macro dcache_by_line_op op, domain, kaddr, size, tmp1, tmp2
 	dcache_line_size \tmp1, \tmp2
 	add	\size, \kaddr, \size
 	sub	\tmp2, \tmp1, #1
 	bic	\kaddr, \kaddr, \tmp2
 9998:
-	.ifc	\op, cvau
-	__dcache_op_workaround_clean_cache \op, \kaddr
-	.else
-	.ifc	\op, cvac
-	__dcache_op_workaround_clean_cache \op, \kaddr
-	.else
-	.ifc	\op, cvap
-	sys	3, c7, c12, 1, \kaddr	// dc cvap
+	.if	(\op == cvau || \op == cvac)
+alternative_if_not ARM64_WORKAROUND_CLEAN_CACHE
+	dc	\op, \kaddr
+alternative_else
+	dc	civac, \kaddr
+alternative_endif
 	.else
 	dc	\op, \kaddr
-	.endif
-	.endif
 	.endif
 	add	\kaddr, \kaddr, \tmp1
 	cmp	\kaddr, \size
@@ -491,10 +472,6 @@ alternative_endif
 	movk	\reg, :abs_g0_nc:\val
 	.endm
 
-	.macro	pte_to_phys, phys, pte
-	and	\phys, \pte, #(((1 << (48 - PAGE_SHIFT)) - 1) << PAGE_SHIFT)
-	.endm
-
 /*
  * Return the current thread_info.
  */
@@ -541,31 +518,8 @@ alternative_endif
 .Ldone\@:
 	.endm
 
-	.macro __mitigate_spectre_bhb_loop      tmp
-#ifdef CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
-alternative_cb  spectre_bhb_patch_loop_iter
-	mov	\tmp, #32		// Patched to correct the immediate
-alternative_cb_end
-.Lspectre_bhb_loop\@:
-	b	. + 4
-	subs	\tmp, \tmp, #1
-	b.ne	.Lspectre_bhb_loop\@
-	dsb	nsh
-	isb
-#endif /* CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY */
+	.macro	pte_to_phys, phys, pte
+	and	\phys, \pte, #(((1 << (48 - PAGE_SHIFT)) - 1) << PAGE_SHIFT)
 	.endm
 
-	/* Save/restores x0-x3 to the stack */
-	.macro __mitigate_spectre_bhb_fw
-#ifdef CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
-	stp	x0, x1, [sp, #-16]!
-	stp	x2, x3, [sp, #-16]!
-	mov	w0, #ARM_SMCCC_ARCH_WORKAROUND_3
-alternative_cb	arm64_update_smccc_conduit
-	nop					// Patched to SMC/HVC #0
-alternative_cb_end
-	ldp	x2, x3, [sp], #16
-	ldp	x0, x1, [sp], #16
-#endif /* CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY */
-	.endm
 #endif	/* __ASM_ASSEMBLER_H */

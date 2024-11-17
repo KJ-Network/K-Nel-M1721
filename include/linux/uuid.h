@@ -23,7 +23,6 @@
  * not including trailing NUL.
  */
 #define	UUID_STRING_LEN		36
-#define	UUID_SIZE		16
 
 static inline int uuid_le_cmp(const uuid_le u1, const uuid_le u2)
 {

@@ -192,13 +192,15 @@ static int fw_cfg_do_platform_probe(struct platform_device *pdev)
 /* fw_cfg revision attribute, in /sys/firmware/qemu_fw_cfg top-level dir. */
 static u32 fw_cfg_rev;
 
-static ssize_t fw_cfg_showrev(struct kobject *k, struct kobj_attribute *a,
-			      char *buf)
+static ssize_t fw_cfg_showrev(struct kobject *k, struct attribute *a, char *buf)
 {
 	return sprintf(buf, "%u\n", fw_cfg_rev);
 }
 
-static const struct kobj_attribute fw_cfg_rev_attr = {
+static const struct {
+	struct attribute attr;
+	ssize_t (*show)(struct kobject *k, struct attribute *a, char *buf);
+} fw_cfg_rev_attr = {
 	.attr = { .name = "rev", .mode = S_IRUSR },
 	.show = fw_cfg_showrev,
 };
@@ -462,12 +464,12 @@ static int fw_cfg_register_file(const struct fw_cfg_file *f)
 	err = kobject_init_and_add(&entry->kobj, &fw_cfg_sysfs_entry_ktype,
 				   fw_cfg_sel_ko, "%d", entry->f.select);
 	if (err)
-		goto err_put_entry;
+		goto err_register;
 
 	/* add raw binary content access */
 	err = sysfs_create_bin_file(&entry->kobj, &fw_cfg_sysfs_attr_raw);
 	if (err)
-		goto err_del_entry;
+		goto err_add_raw;
 
 	/* try adding "/sys/firmware/qemu_fw_cfg/by_name/" symlink */
 	fw_cfg_build_symlink(fw_cfg_fname_kset, &entry->kobj, entry->f.name);
@@ -476,10 +478,10 @@ static int fw_cfg_register_file(const struct fw_cfg_file *f)
 	fw_cfg_sysfs_cache_enlist(entry);
 	return 0;
 
-err_del_entry:
+err_add_raw:
 	kobject_del(&entry->kobj);
-err_put_entry:
-	kobject_put(&entry->kobj);
+err_register:
+	kfree(entry);
 	return err;
 }
 

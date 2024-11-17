@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -28673,7 +28672,6 @@ WDI_ProcessPrefNetworkFoundInd
   wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.rssi = pNetwFoundParams->rssi;
   wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.frameLength =
       pNetwFoundParams->frameLength;
-  wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.freq = pNetwFoundParams->freq;
   wpalMemoryCopy( wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.pData,
       (wpt_uint8 *)pEventData->pEventData + sizeof(tPrefNetwFoundParams),
       pNetwFoundParams->frameLength);
@@ -28683,13 +28681,12 @@ WDI_ProcessPrefNetworkFoundInd
 
   // DEBUG
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
-              "[PNO WDI] PREF_NETWORK_FOUND_IND Type (%d) data (SSID=%.*s, LENGTH=%u,  RSSI=%u FREQ=%d)",
+              "[PNO WDI] PREF_NETWORK_FOUND_IND Type (%d) data (SSID=%.*s, LENGTH=%u,  RSSI=%u)",
               wdiInd.wdiIndicationType,
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.ucLength,
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID,
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.ucLength,
-              wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.rssi,
-              wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.freq);
+              wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.rssi );
 
   if ( pWDICtx->wdiLowLevelIndCB )
   {

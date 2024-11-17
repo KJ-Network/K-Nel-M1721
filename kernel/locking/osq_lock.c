@@ -130,17 +130,23 @@ bool osq_lock(struct optimistic_spin_queue *lock)
 	 * cmpxchg in an attempt to undo our queueing.
 	 */
 
-	/*
-	 * Wait to acquire the lock or cancelation. Note that need_resched()
-	 * will come with an IPI, which will wake smp_cond_load_relaxed() if it
-	 * is implemented with a monitor-wait. vcpu_is_preempted() relies on
-	 * polling, be careful.
-	 */
-	if (smp_cond_load_relaxed(&node->locked, VAL || need_resched() ||
-				  rt_task(task)))
-		return true;
+	while (!READ_ONCE(node->locked)) {
+		/*
+		 * If we need to reschedule bail... so we can block.
+		 * If a task spins on owner on a CPU after acquiring
+		 * osq_lock while a RT task spins on another CPU  to
+		 * acquire osq_lock, it will starve the owner from
+		 * completing if owner is to be scheduled on the same CPU.
+		 * It will be a live lock.
+		 */
+		if (need_resched() || rt_task(task))
+			goto unqueue;
 
-	/* unqueue */
+		cpu_relax_lowlatency();
+	}
+	return true;
+
+unqueue:
 	/*
 	 * Step - A  -- stabilize @prev
 	 *

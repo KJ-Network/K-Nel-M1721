@@ -223,7 +223,9 @@ ifdef CONFIG_RETPOLINE
     RETPOLINE_CFLAGS_CLANG := -mretpoline-external-thunk
 
     RETPOLINE_CFLAGS += $(call cc-option,$(RETPOLINE_CFLAGS_GCC),$(call cc-option,$(RETPOLINE_CFLAGS_CLANG)))
-    KBUILD_CFLAGS += $(RETPOLINE_CFLAGS)
+    ifneq ($(RETPOLINE_CFLAGS),)
+        KBUILD_CFLAGS += $(RETPOLINE_CFLAGS) -DRETPOLINE
+    endif
 endif
 
 archscripts: scripts_basic
@@ -238,13 +240,6 @@ archheaders:
 archprepare:
 ifeq ($(CONFIG_KEXEC_FILE),y)
 	$(Q)$(MAKE) $(build)=arch/x86/purgatory arch/x86/purgatory/kexec-purgatory.c
-endif
-ifdef CONFIG_RETPOLINE
-ifeq ($(RETPOLINE_CFLAGS),)
-	@echo "You are building kernel with non-retpoline compiler." >&2
-	@echo "Please update your compiler." >&2
-	@false
-endif
 endif
 
 ###

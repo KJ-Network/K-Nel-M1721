@@ -442,10 +442,7 @@ static int mxs_saif_hw_params(struct snd_pcm_substream *substream,
 		* basic clock which should be fast enough for the internal
 		* logic.
 		*/
-		ret = clk_enable(saif->clk);
-		if (ret)
-			return ret;
-
+		clk_enable(saif->clk);
 		ret = clk_set_rate(saif->clk, 24000000);
 		clk_disable(saif->clk);
 		if (ret)
@@ -748,7 +745,6 @@ static int mxs_saif_probe(struct platform_device *pdev)
 		saif->master_id = saif->id;
 	} else {
 		ret = of_alias_get_id(master, "saif");
-		of_node_put(master);
 		if (ret < 0)
 			return ret;
 		else

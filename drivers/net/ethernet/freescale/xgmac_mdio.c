@@ -301,10 +301,9 @@ err_ioremap:
 static int xgmac_mdio_remove(struct platform_device *pdev)
 {
 	struct mii_bus *bus = platform_get_drvdata(pdev);
-	struct mdio_fsl_priv *priv = bus->priv;
 
 	mdiobus_unregister(bus);
-	iounmap(priv->mdio_base);
+	iounmap(bus->priv);
 	mdiobus_free(bus);
 
 	return 0;

@@ -28,6 +28,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/of_regulator.h>
+#include <linux/regulator/spm-regulator.h>
 #include <soc/qcom/spm.h>
 #include <linux/arm-smccc.h>
 
@@ -1302,7 +1303,7 @@ static struct platform_driver spm_regulator_driver = {
  *
  * Returns 0 on success or errno on failure.
  */
-static int __init spm_regulator_init(void)
+int __init spm_regulator_init(void)
 {
 	static bool has_registered;
 
@@ -1313,6 +1314,7 @@ static int __init spm_regulator_init(void)
 
 	return platform_driver_register(&spm_regulator_driver);
 }
+EXPORT_SYMBOL(spm_regulator_init);
 
 static void __exit spm_regulator_exit(void)
 {

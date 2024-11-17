@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -362,7 +361,6 @@ struct fastrpc_mmap {
 	int uncached;
 	int secure;
 	uintptr_t attr;
-	bool is_filemap; /*flag to indicate map used in process init*/
 };
 
 enum fastrpc_perfkeys {
@@ -712,10 +710,9 @@ static int fastrpc_mmap_remove(struct fastrpc_file *fl, uintptr_t va,
 
 	spin_lock(&me->hlock);
 	hlist_for_each_entry_safe(map, n, &me->maps, hn) {
-		if (map->refs == 1 && map->raddr == va &&
+		if (map->raddr == va &&
 			map->raddr + map->len == va + len &&
-			/*Remove map if not used in process initialization*/
-			!map->is_filemap) {
+			map->refs == 1) {
 			match = map;
 			hlist_del_init(&map->hn);
 			break;
@@ -727,10 +724,9 @@ static int fastrpc_mmap_remove(struct fastrpc_file *fl, uintptr_t va,
 		return 0;
 	}
 	hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
-		if (map->refs == 1 && map->raddr == va &&
+		if (map->raddr == va &&
 			map->raddr + map->len == va + len &&
-			/*Remove map if not used in process initialization*/
-			!map->is_filemap) {
+			map->refs == 1) {
 			match = map;
 			hlist_del_init(&map->hn);
 			break;
@@ -876,7 +872,6 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd,
 	map->fl = fl;
 	map->fd = fd;
 	map->attr = attr;
-	map->is_filemap = false;
 	if (mflags == ADSP_MMAP_HEAP_ADDR ||
 				mflags == ADSP_MMAP_REMOTE_HEAP_ADDR) {
 		unsigned long dma_attrs = DMA_ATTR_SKIP_ZEROING |
@@ -917,9 +912,6 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd,
 				(unsigned int)map->attr);
 			map->refs = 2;
 		}
-		VERIFY(err, !IS_ERR_OR_NULL(map->buf = dma_buf_get(fd)));
-		if (err)
-			goto bail;
 		VERIFY(err, !IS_ERR_OR_NULL(map->handle =
 				ion_import_dma_buf_fd(fl->apps->client, fd)));
 		if (err)
@@ -950,6 +942,9 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd,
 		if (map->attr & FASTRPC_ATTR_NOVA && !sess->smmu.coherent)
 			map->uncached = 1;
 
+		VERIFY(err, !IS_ERR_OR_NULL(map->buf = dma_buf_get(fd)));
+		if (err)
+			goto bail;
 		VERIFY(err, !IS_ERR_OR_NULL(map->attach =
 				dma_buf_attach(map->buf, sess->smmu.dev)));
 		if (err)
@@ -2237,12 +2232,6 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		remote_arg_t ra[1];
 		int tgid = fl->tgid;
 
-		if (fl->dev_minor == MINOR_NUM_DEV) {
-			err = -ECONNREFUSED;
-			pr_err("adsprpc: %s: untrusted apk trying to attach to privileged DSP PD\n",
-				__func__);
-			return err;
-		}
 		ra[0].buf.pv = (void *)&tgid;
 		ra[0].buf.len = sizeof(tgid);
 		ioctl.inv.handle = FASTRPC_STATIC_HANDLE_PROCESS_GROUP;
@@ -2288,8 +2277,6 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 			mutex_lock(&fl->fl_map_mutex);
 			VERIFY(err, !fastrpc_mmap_create(fl, init->filefd, 0,
 				init->file, init->filelen, mflags, &file));
-			if (file)
-				file->is_filemap = true;
 			mutex_unlock(&fl->fl_map_mutex);
 			if (err)
 				goto bail;
@@ -2364,13 +2351,6 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 			unsigned int namelen;
 			unsigned int pageslen;
 		} inbuf;
-
-		if (fl->dev_minor == MINOR_NUM_DEV) {
-			err = -ECONNREFUSED;
-			pr_err("adsprpc: %s: untrusted apk trying to attach to audio PD\n",
-				__func__);
-			return err;
-		}
 
 		if (!init->filelen)
 			goto bail;
@@ -3490,7 +3470,6 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s%s%s%s%s\n", single_line, single_line,
 			single_line, single_line, single_line);
-		spin_lock(&me->hlock);
 		hlist_for_each_entry_safe(gmaps, n, &me->maps, hn) {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20d|0x%-18llX|0x%-18X|0x%-20lX\n\n",
@@ -3498,21 +3477,18 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			(uint32_t)gmaps->size,
 			gmaps->va);
 		}
-		spin_unlock(&me->hlock);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20s|%-20s|%-20s|%-20s\n",
 			"len", "refs", "raddr", "flags");
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s%s%s%s%s\n", single_line, single_line,
 			single_line, single_line, single_line);
-		spin_lock(&me->hlock);
 		hlist_for_each_entry_safe(gmaps, n, &me->maps, hn) {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"0x%-18X|%-20d|%-20lu|%-20u\n",
 			(uint32_t)gmaps->len, gmaps->refs,
 			gmaps->raddr, gmaps->flags);
 		}
-		spin_unlock(&me->hlock);
 	} else {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			 "\n%s %13s %d\n", "cid", ":", fl->cid);
@@ -3562,14 +3538,12 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			"%s%s%s%s%s\n",
 			single_line, single_line, single_line,
 			single_line, single_line);
-		mutex_lock(&fl->map_mutex);
 		hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"0x%-20lX|0x%-20llX|0x%-20zu\n\n",
 			map->va, map->phys,
 			map->size);
 		}
-		mutex_unlock(&fl->map_mutex);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20s|%-20s|%-20s|%-20s\n",
 			"len", "refs",
@@ -3578,27 +3552,23 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			"%s%s%s%s%s\n",
 			single_line, single_line, single_line,
 			single_line, single_line);
-		mutex_lock(&fl->map_mutex);
 		hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20zu|%-20d|0x%-20lX|%-20d\n\n",
 			map->len, map->refs, map->raddr,
 			map->uncached);
 		}
-		mutex_unlock(&fl->map_mutex);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20s|%-20s\n", "secure", "attr");
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s%s%s%s%s\n",
 			single_line, single_line, single_line,
 			single_line, single_line);
-		mutex_lock(&fl->map_mutex);
 		hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%-20d|0x%-20lX\n\n",
 			map->secure, map->attr);
 		}
-		mutex_unlock(&fl->map_mutex);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 				"%s %d\n\n",
 				"KERNEL MEMORY ALLOCATION:", 1);
@@ -3981,7 +3951,7 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 	} i;
 	void *param = (char *)ioctl_param;
 	struct fastrpc_file *fl = (struct fastrpc_file *)file->private_data;
-	int size = 0, err = 0, req_complete = 0;
+	int size = 0, err = 0;
 	uint32_t info;
 	static bool isQueryDone;
 
@@ -4185,8 +4155,8 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 		if (err)
 			goto bail;
 		if ((fl->cid == CDSP_DOMAIN_ID) && !isQueryDone) {
-			req_complete = fastrpc_update_cdsp_support(fl);
-			if (!req_complete)
+			err = fastrpc_update_cdsp_support(fl);
+			if (!err)
 				isQueryDone = true;
 		}
 		break;

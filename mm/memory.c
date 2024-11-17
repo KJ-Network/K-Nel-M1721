@@ -323,22 +323,6 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
 	return false;
 }
 
-void tlb_flush_pmd_range(struct mmu_gather *tlb, unsigned long address,
-			 unsigned long size)
-{
-	if (tlb->page_size != 0 && tlb->page_size != PMD_SIZE)
-		tlb_flush_mmu(tlb);
-
-	tlb->page_size = PMD_SIZE;
-	tlb->start = min(tlb->start, address);
-	tlb->end = max(tlb->end, address + size);
-	/*
-	 * Track the last address with which we adjusted the range. This
-	 * will be used later to adjust again after a mmu_flush due to
-	 * failed __tlb_remove_page
-	 */
-	tlb->addr = address + size - PMD_SIZE;
-}
 #endif /* HAVE_GENERIC_MMU_GATHER */
 
 #ifdef CONFIG_HAVE_RCU_TABLE_FREE
@@ -417,7 +401,7 @@ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 	pgtable_t token = pmd_pgtable(*pmd);
 	pmd_clear(pmd);
 	pte_free_tlb(tlb, token, addr);
-	mm_dec_nr_ptes(tlb->mm);
+	atomic_long_dec(&tlb->mm->nr_ptes);
 }
 
 static inline void free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
@@ -485,7 +469,6 @@ static inline void free_pud_range(struct mmu_gather *tlb, pgd_t *pgd,
 	pud = pud_offset(pgd, start);
 	pgd_clear(pgd);
 	pud_free_tlb(tlb, pud, start);
-	mm_dec_nr_puds(tlb->mm);
 }
 
 /*
@@ -612,7 +595,7 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd, unsigned long address)
 
 	ptl = pmd_lock(mm, pmd);
 	if (likely(pmd_none(*pmd))) {	/* Has another populated it ? */
-		mm_inc_nr_ptes(mm);
+		atomic_long_inc(&mm->nr_ptes);
 		pmd_populate(mm, pmd, new);
 		new = NULL;
 	}
@@ -1137,17 +1120,6 @@ int copy_page_range(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 	return ret;
 }
 
-/* Whether we should zap all COWed (private) pages too */
-static inline bool should_zap_cows(struct zap_details *details)
-{
-	/* By default, zap all pages */
-	if (!details)
-		return true;
-
-	/* Or, we zap COWed pages only if the caller wants to */
-	return !details->check_mapping;
-}
-
 static unsigned long zap_pte_range(struct mmu_gather *tlb,
 				struct vm_area_struct *vma, pmd_t *pmd,
 				unsigned long addr, unsigned long end,
@@ -1218,20 +1190,17 @@ again:
 			}
 			continue;
 		}
+		/* If details->check_mapping, we leave swap entries. */
+		if (unlikely(details))
+			continue;
 
 		entry = pte_to_swp_entry(ptent);
-		if (!non_swap_entry(entry)) {
-			/* Genuine swap entry, hence a private anon page */
-			if (!should_zap_cows(details))
-				continue;
+		if (!non_swap_entry(entry))
 			rss[MM_SWAPENTS]--;
-		} else if (is_migration_entry(entry)) {
+		else if (is_migration_entry(entry)) {
 			struct page *page;
 
 			page = migration_entry_to_page(entry);
-			if (details && details->check_mapping &&
-			    details->check_mapping != page_rmapping(page))
-				continue;
 			rss[mm_counter(page)]--;
 		}
 		if (unlikely(!free_swap_and_cache(entry)))
@@ -3109,15 +3078,10 @@ static int __do_fault(struct fault_env *fe, pgoff_t pgoff,
 	}
 
 	if (unlikely(PageHWPoison(vmf.page))) {
-		int poisonret = VM_FAULT_HWPOISON;
-		if (ret & VM_FAULT_LOCKED) {
-			/* Retry if a clean page was removed from the cache. */
-			if (invalidate_inode_page(vmf.page))
-				poisonret = 0;
+		if (ret & VM_FAULT_LOCKED)
 			unlock_page(vmf.page);
-		}
 		put_page(vmf.page);
-		return poisonret;
+		return VM_FAULT_HWPOISON;
 	}
 
 	if (unlikely(!(ret & VM_FAULT_LOCKED)))
@@ -3153,7 +3117,7 @@ static int pte_alloc_one_map(struct fault_env *fe)
 			goto map_pte;
 		}
 
-		mm_inc_nr_ptes(vma->vm_mm);
+		atomic_long_inc(&vma->vm_mm->nr_ptes);
 		pmd_populate(vma->vm_mm, fe->pmd, fe->prealloc_pte);
 		spin_unlock(fe->ptl);
 		fe->prealloc_pte = 0;
@@ -4253,13 +4217,10 @@ int __pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
 	smp_wmb(); /* See comment in __pte_alloc */
 
 	spin_lock(&mm->page_table_lock);
-	if (pgd_present(*pgd)) {
-		/* Another has populated it */
+	if (pgd_present(*pgd))		/* Another has populated it */
 		pud_free(mm, new);
-	} else {
-		mm_inc_nr_puds(mm);
+	else
 		pgd_populate(mm, pgd, new);
-	}
 	spin_unlock(&mm->page_table_lock);
 	return 0;
 }
@@ -4297,8 +4258,8 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
 
-static int __follow_pte_pmd(struct mm_struct *mm, unsigned long address,
-		pte_t **ptepp, pmd_t **pmdpp, spinlock_t **ptlp)
+static int __follow_pte(struct mm_struct *mm, unsigned long address,
+		pte_t **ptepp, spinlock_t **ptlp)
 {
 	pgd_t *pgd;
 	pud_t *pud;
@@ -4315,20 +4276,11 @@ static int __follow_pte_pmd(struct mm_struct *mm, unsigned long address,
 
 	pmd = pmd_offset(pud, address);
 	VM_BUG_ON(pmd_trans_huge(*pmd));
-
-	if (pmd_huge(*pmd)) {
-		if (!pmdpp)
-			goto out;
-
-		*ptlp = pmd_lock(mm, pmd);
-		if (pmd_huge(*pmd)) {
-			*pmdpp = pmd;
-			return 0;
-		}
-		spin_unlock(*ptlp);
-	}
-
 	if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd)))
+		goto out;
+
+	/* We cannot handle huge page PFN maps. Luckily they don't exist. */
+	if (pmd_huge(*pmd))
 		goto out;
 
 	ptep = pte_offset_map_lock(mm, pmd, address, ptlp);
@@ -4351,23 +4303,9 @@ static inline int follow_pte(struct mm_struct *mm, unsigned long address,
 
 	/* (void) is needed to make gcc happy */
 	(void) __cond_lock(*ptlp,
-			   !(res = __follow_pte_pmd(mm, address, ptepp, NULL,
-					   ptlp)));
+			   !(res = __follow_pte(mm, address, ptepp, ptlp)));
 	return res;
 }
-
-int follow_pte_pmd(struct mm_struct *mm, unsigned long address,
-			     pte_t **ptepp, pmd_t **pmdpp, spinlock_t **ptlp)
-{
-	int res;
-
-	/* (void) is needed to make gcc happy */
-	(void) __cond_lock(*ptlp,
-			   !(res = __follow_pte_pmd(mm, address, ptepp, pmdpp,
-					   ptlp)));
-	return res;
-}
-EXPORT_SYMBOL(follow_pte_pmd);
 
 /**
  * follow_pfn - look up PFN at a user virtual address

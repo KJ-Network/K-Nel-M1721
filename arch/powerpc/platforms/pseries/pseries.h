@@ -81,6 +81,4 @@ unsigned long pseries_memory_block_size(void);
 
 void pseries_setup_rfi_flush(void);
 
-void pseries_rng_init(void);
-
 #endif /* _PSERIES_PSERIES_H */

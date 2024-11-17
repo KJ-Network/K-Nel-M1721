@@ -107,8 +107,6 @@ EXPORT_SYMBOL_GPL(kvm_debugfs_dir);
 static int kvm_debugfs_num_entries;
 static const struct file_operations *stat_fops_per_vm[];
 
-static struct file_operations kvm_chardev_ops;
-
 static long kvm_vcpu_ioctl(struct file *file, unsigned int ioctl,
 			   unsigned long arg);
 #ifdef CONFIG_KVM_COMPAT
@@ -530,7 +528,7 @@ static struct kvm_memslots *kvm_alloc_memslots(void)
 	int i;
 	struct kvm_memslots *slots;
 
-	slots = kvzalloc(sizeof(struct kvm_memslots), GFP_KERNEL);
+	slots = kvm_kvzalloc(sizeof(struct kvm_memslots));
 	if (!slots)
 		return NULL;
 
@@ -716,16 +714,6 @@ static struct kvm *kvm_create_vm(unsigned long type)
 
 	preempt_notifier_inc();
 
-	/*
-	 * When the fd passed to this ioctl() is opened it pins the module,
-	 * but try_module_get() also prevents getting a reference if the module
-	 * is in MODULE_STATE_GOING (e.g. if someone ran "rmmod --wait").
-	 */
-	if (!try_module_get(kvm_chardev_ops.owner)) {
-		r = -ENODEV;
-		goto out_err;
-	}
-
 	return kvm;
 
 out_err:
@@ -747,6 +735,18 @@ out_err_no_disable:
 	kvm_arch_free_vm(kvm);
 	mmdrop(current->mm);
 	return ERR_PTR(r);
+}
+
+/*
+ * Avoid using vmalloc for a small buffer.
+ * Should not be used when the size is statically known.
+ */
+void *kvm_kvzalloc(unsigned long size)
+{
+	if (size > PAGE_SIZE)
+		return vzalloc(size);
+	else
+		return kzalloc(size, GFP_KERNEL);
 }
 
 static void kvm_destroy_devices(struct kvm *kvm)
@@ -798,7 +798,6 @@ static void kvm_destroy_vm(struct kvm *kvm)
 	preempt_notifier_dec();
 	hardware_disable_all();
 	mmdrop(mm);
-	module_put(kvm_chardev_ops.owner);
 }
 
 void kvm_get_kvm(struct kvm *kvm)
@@ -833,7 +832,7 @@ static int kvm_create_dirty_bitmap(struct kvm_memory_slot *memslot)
 {
 	unsigned long dirty_bytes = 2 * kvm_dirty_bitmap_bytes(memslot);
 
-	memslot->dirty_bitmap = kvzalloc(dirty_bytes, GFP_KERNEL);
+	memslot->dirty_bitmap = kvm_kvzalloc(dirty_bytes);
 	if (!memslot->dirty_bitmap)
 		return -ENOMEM;
 
@@ -1052,7 +1051,7 @@ int __kvm_set_memory_region(struct kvm *kvm,
 			goto out_free;
 	}
 
-	slots = kvzalloc(sizeof(struct kvm_memslots), GFP_KERNEL);
+	slots = kvm_kvzalloc(sizeof(struct kvm_memslots));
 	if (!slots)
 		goto out_free;
 	memcpy(slots, __kvm_memslots(kvm, as_id), sizeof(struct kvm_memslots));
@@ -1514,24 +1513,15 @@ static bool vma_is_valid(struct vm_area_struct *vma, bool write_fault)
 	return true;
 }
 
-static int kvm_try_get_pfn(kvm_pfn_t pfn)
-{
-	if (kvm_is_reserved_pfn(pfn))
-		return 1;
-	return get_page_unless_zero(pfn_to_page(pfn));
-}
-
 static int hva_to_pfn_remapped(struct vm_area_struct *vma,
 			       unsigned long addr, bool *async,
 			       bool write_fault, bool *writable,
 			       kvm_pfn_t *p_pfn)
 {
-	kvm_pfn_t pfn;
-	pte_t *ptep;
-	spinlock_t *ptl;
+	unsigned long pfn;
 	int r;
 
-	r = follow_pte_pmd(vma->vm_mm, addr, &ptep, NULL, &ptl);
+	r = follow_pfn(vma, addr, &pfn);
 	if (r) {
 		/*
 		 * get_user_pages fails for VM_IO and VM_PFNMAP vmas and does
@@ -1546,19 +1536,14 @@ static int hva_to_pfn_remapped(struct vm_area_struct *vma,
 		if (r)
 			return r;
 
-		r = follow_pte_pmd(vma->vm_mm, addr, &ptep, NULL, &ptl);
+		r = follow_pfn(vma, addr, &pfn);
 		if (r)
 			return r;
-	}
 
-	if (write_fault && !pte_write(*ptep)) {
-		pfn = KVM_PFN_ERR_RO_FAULT;
-		goto out;
 	}
 
 	if (writable)
-		*writable = pte_write(*ptep);
-	pfn = pte_pfn(*ptep);
+		*writable = true;
 
 	/*
 	 * Get a reference here because callers of *hva_to_pfn* and
@@ -1570,21 +1555,11 @@ static int hva_to_pfn_remapped(struct vm_area_struct *vma,
 	 * Whoever called remap_pfn_range is also going to call e.g.
 	 * unmap_mapping_range before the underlying pages are freed,
 	 * causing a call to our MMU notifier.
-	 *
-	 * Certain IO or PFNMAP mappings can be backed with valid
-	 * struct pages, but be allocated without refcounting e.g.,
-	 * tail pages of non-compound higher order allocations, which
-	 * would then underflow the refcount when the caller does the
-	 * required put_page. Don't allow those pages here.
 	 */ 
-	if (!kvm_try_get_pfn(pfn))
-		r = -EFAULT;
+	kvm_get_pfn(pfn);
 
-out:
-	pte_unmap_unlock(ptep, ptl);
 	*p_pfn = pfn;
-
-	return r;
+	return 0;
 }
 
 /*
