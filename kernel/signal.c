@@ -48,7 +48,7 @@
 #include <asm/siginfo.h>
 #include <asm/cacheflush.h>
 #include "audit.h"	/* audit_signal_info() */
-#include <uapi/linux/android/rekernel_netlink.h>
+#include "rekernel_netlink.h"
 
 
 /*

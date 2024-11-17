@@ -72,7 +72,7 @@
 #include <linux/spinlock.h>
 #include "binder_alloc.h"
 #include "binder_trace.h"
-#include <uapi/linux/android/rekernel_netlink.h>
+#include "rekernel_netlink.h"
 
 static HLIST_HEAD(binder_deferred_list);
 static DEFINE_SPINLOCK(binder_deferred_lock);

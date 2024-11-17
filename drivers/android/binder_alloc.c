@@ -32,7 +32,7 @@
 #include <linux/highmem.h>
 #include "binder_alloc.h"
 #include "binder_trace.h"
-#include <uapi/linux/android/rekernel_netlink.h>
+#include "rekernel_netlink.h"
 
 struct list_lru binder_alloc_lru;
 
