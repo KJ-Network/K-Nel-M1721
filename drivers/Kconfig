@@ -211,5 +211,4 @@ source "drivers/fpga/Kconfig"
 source "drivers/sensors/Kconfig"
 
 source "drivers/tee/Kconfig"
-
 endmenu

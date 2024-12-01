@@ -116,4 +116,3 @@ void picolcd_suspend_backlight(struct picolcd_data *data)
 	data->lcd_power = data->backlight->props.power = bl_power;
 }
 #endif /* CONFIG_PM */
-
