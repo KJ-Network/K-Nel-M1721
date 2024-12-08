@@ -2285,6 +2285,25 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 		scan_balance = SCAN_FILE;
 		goto out;
 	}
+	
+	/*
+	 * Hard protection of the working set.
+	 */
+	if (file) {
+		/*
+		 * Don't reclaim file pages when the amount of
+		 * clean file pages is below vm.clean_min_kbytes.
+		 */
+		if (sc->clean_below_min)
+			scan = 0;
+		} else {
+		/*
+		 * Don't reclaim anonymous pages when their
+		 * amount is below vm.anon_min_kbytes.
+		 */
+		if (sc->anon_below_min)
+			scan = 0;
+    }
 
 	/*
 	 * Global reclaim will swap to prevent OOM even with no
