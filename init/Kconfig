@@ -86,13 +86,6 @@ config LOCALVERSION
 	  any files with a filename matching localversion* in your
 	  object and source tree, in that order.  Your total string can
 	  be a maximum of 64 characters.
-	  
-config IS_RELEASE
-    string "Kernel Release Status"
-    help
-      This a config for the release kernel
-      if you enable it, git version won't be added and add a '-Release-'
-      if you want to enable it, just say Y
 
 config LOCALVERSION_AUTO
 	bool "Automatically append version information to the version string"
