@@ -21,6 +21,7 @@
 #include <linux/namei.h>
 #include <linux/capability.h>
 #include <linux/rcupdate.h>
+#include <linux/mm.h>
 
 #include "include/apparmor.h"
 #include "include/apparmorfs.h"
