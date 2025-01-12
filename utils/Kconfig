@@ -1,5 +1,5 @@
 menu "Utilities"
 
-source "docker/Kconfig"
+source "utils/docker/Kconfig"
 
 endmenu
