@@ -1,3 +1,4 @@
+menu "Docker"
 
 config DOCKER
 	bool "Docker support"
@@ -174,3 +175,5 @@ config DOCKER_OVERLAY_FS
 	select OVERLAY_FS
 	select EXT4_FS_SECURITY
 	select EXT4_FS_POSIX_ACL
+
+endmenu
