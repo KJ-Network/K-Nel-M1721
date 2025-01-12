@@ -319,7 +319,7 @@ err_no_vma:
 	return vma ? -ENOMEM : -ESRCH;
 }
 
-static static inline bool line_is_frozen(struct task_struct *task)
+static inline bool line_is_frozen(struct task_struct *task)
 {
 	return frozen(task) || freezing(task);
 }
