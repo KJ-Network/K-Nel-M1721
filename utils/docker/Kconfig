@@ -1,5 +1,4 @@
-menu "Docker"
-
+# Docker Support
 config DOCKER
 	bool "Docker support"
 	default y
@@ -91,8 +90,9 @@ config DOCKER
         select CHECKPOINT_RESTORE
         select NETFILTER_XT_MATCH_CGROUP
 
+if DOCKER
 
-
+menu "Docker Supports"
 
 config DOCKER_STATISTICS
 	bool "Gathering statistics"
@@ -177,3 +177,5 @@ config DOCKER_OVERLAY_FS
 	select EXT4_FS_POSIX_ACL
 
 endmenu
+
+endif
