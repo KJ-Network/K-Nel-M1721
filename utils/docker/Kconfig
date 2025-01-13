@@ -51,8 +51,10 @@ config DOCKER
 	select BRIDGE
 	select BRIDGE_NETFILTER
 	select NF_NAT_IPV4
+	select NF_NAT_IPV6
 	select IP_NF_FILTER
 	select IP_NF_TARGET_MASQUERADE
+	select IP6_NF_TARGET_MASQUERADE
 	select NETFILTER_XT_MATCH_ADDRTYPE
 	select NETFILTER_XT_MATCH_CONNTRACK
 	select NF_NAT
@@ -80,6 +82,7 @@ config DOCKER
         select NETFILTER_XT_MATCH_IPVS
         select IP_VS_RR
         select SECURITY_APPARMOR
+        select VLAN_8021Q
         select BRIDGE_VLAN_FILTERING
         #select IP6_NF_TARGET_MASQUERADE
         select NETFILTER_XT_TARGET_CHECKSUM
