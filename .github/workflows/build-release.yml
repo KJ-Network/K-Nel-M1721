@@ -1,0 +1,193 @@
+name: Build K-Nel M1721 (Release Versions)
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+        LOCALVERSIONNAME:
+            description: 'Kernel Local Version Name'
+            required: true
+            default: 'X.X' 
+
+jobs:
+  build-vanilla:
+    name: Build K-Nel M1721 (Release Versions) by ${{ github.actor }}
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Set Beijing timezone
+        uses: szenius/set-timezone@v1.2
+        with:
+          timezoneLinux: "Asia/Shanghai"
+
+      - name: Get branch names.
+        id: branch-names
+        uses: tj-actions/branch-names@v8
+
+      - name: Set SWAP to 5GiB
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 5
+
+      - name: Clean useless files
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Initialize compilation environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python2 python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5 libncurses5-dev libsdl1.2-dev rsync adb fastboot -y
+          mkdir -p $GITHUB_WORKSPACE/workdir
+          cd $GITHUB_WORKSPACE/workdir
+          echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Get Toolchain
+        run: |
+          git clone https://github.com/kdrag0n/proton-clang.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
+          cd $GITHUB_WORKSPACE/workdir/toolchain
+          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/arm-linux-gnueabi/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.tar.xz -O gcc32.tar.xz
+          tar -xvf gcc32.tar.xz
+          mv gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi gcc32
+          rm gcc32.tar.xz
+          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.tar.xz -O gcc64.tar.xz
+          tar -xvf gcc64.tar.xz
+          mv gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu gcc64
+          rm gcc64.tar.xz
+
+      - name: Get Kernel source
+        run: |
+          git clone --recursive https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.branch-names.outputs.current_branch }} --depth 1 $GITHUB_WORKSPACE/workdir/source
+          rm -rf $GITHUB_WORKSPACE/workdir/source/.git
+
+      - name: Build Kernel
+        run: |
+          export LOCALVERSION=Release-${{ github.event.inputs.LOCALVERSIONNAME }}
+          export KBUILD_BUILD_HOST=Github-Action
+          export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
+          export ARCH="arm64"
+          export SUBARCH="arm64"
+          export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export CC="clang"
+          export CROSS_COMPILE="aarch64-linux-gnu-"
+          export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+          export TRIPLE="aarch64-linux-gnu-"
+          cd $GITHUB_WORKSPACE/workdir/source
+          make O=out m1721_k-nel_defconfig
+          make -j$(nproc --all) O=out
+
+      - name: Check a kernel output files
+        run: |
+          cd $GITHUB_WORKSPACE/workdir/source
+          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
+              echo "CHECK_FILE_IS_OK=true" >> $GITHUB_ENV
+          else
+              echo "Kernel output file is empty"
+              exit 1
+          fi
+
+      - name: Pack Kernel
+        if: env.CHECK_FILE_IS_OK == 'true'
+        run: |
+          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
+          
+      - name: Upload Kernel Package
+        if: env.CHECK_FILE_IS_OK == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: K-Nel_M1721_Release-${{ github.event.inputs.LOCALVERSIONNAME }}_AK3&APM
+          path: workdir/source/android/Packer/*
+          
+  build-ksu:
+    name: Build K-Nel M1721 (Release Versions) by ${{ github.actor }}
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Set Beijing timezone
+        uses: szenius/set-timezone@v1.2
+        with:
+          timezoneLinux: "Asia/Shanghai"
+
+      - name: Get branch names.
+        id: branch-names
+        uses: tj-actions/branch-names@v8
+
+      - name: Set SWAP to 5GiB
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 5
+
+      - name: Clean useless files
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Initialize compilation environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python2 python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5 libncurses5-dev libsdl1.2-dev rsync adb fastboot -y
+          mkdir -p $GITHUB_WORKSPACE/workdir
+          cd $GITHUB_WORKSPACE/workdir
+          echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Get Toolchain
+        run: |
+          git clone https://github.com/kdrag0n/proton-clang.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
+          cd $GITHUB_WORKSPACE/workdir/toolchain
+          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/arm-linux-gnueabi/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.tar.xz -O gcc32.tar.xz
+          tar -xvf gcc32.tar.xz
+          mv gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi gcc32
+          rm gcc32.tar.xz
+          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.tar.xz -O gcc64.tar.xz
+          tar -xvf gcc64.tar.xz
+          mv gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu gcc64
+          rm gcc64.tar.xz
+
+      - name: Get Kernel source
+        run: |
+          git clone --recursive https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.branch-names.outputs.current_branch }} --depth 1 $GITHUB_WORKSPACE/workdir/source
+          rm -rf $GITHUB_WORKSPACE/workdir/source/.git
+
+      - name: Integrate KernelSU Next
+        run: |
+          cd $GITHUB_WORKSPACE/workdir/source
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+          sed -i -e '$a\'$'\n''CONFIG_KSU=y' arch/arm64/configs/m1721_k-nel_defconfig
+
+      - name: Build Kernel
+        run: |
+          export LOCALVERSION=Release-${{ github.event.inputs.LOCALVERSIONNAME }}
+          export KBUILD_BUILD_HOST=Github-Action
+          export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
+          export ARCH="arm64"
+          export SUBARCH="arm64"
+          export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export CC="clang"
+          export CROSS_COMPILE="aarch64-linux-gnu-"
+          export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+          export TRIPLE="aarch64-linux-gnu-"
+          cd $GITHUB_WORKSPACE/workdir/source
+          make O=out m1721_k-nel_defconfig
+          make -j$(nproc --all) O=out
+
+      - name: Check a kernel output files
+        run: |
+          cd $GITHUB_WORKSPACE/workdir/source
+          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
+              echo "CHECK_FILE_IS_OK=true" >> $GITHUB_ENV
+          else
+              echo "Kernel output file is empty"
+              exit 1
+          fi
+
+      - name: Pack Kernel
+        if: env.CHECK_FILE_IS_OK == 'true'
+        run: |
+          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
+          
+      - name: Upload Kernel Package
+        if: env.CHECK_FILE_IS_OK == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: K-Nel_M1721_KSU_Release-${{ github.event.inputs.LOCALVERSIONNAME }}_AK3&APM
+          path: workdir/source/android/Packer/*
+          
