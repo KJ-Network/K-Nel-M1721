@@ -969,6 +969,19 @@ struct user_struct {
 #if defined(CONFIG_PERF_EVENTS) || defined(CONFIG_BPF_SYSCALL)
 	atomic_long_t locked_vm;
 #endif
+
+    #ifdef CONFIG_KSU_SUSFS
+      u64 android_kabi_reserved2;
+    #endif
+      // Android KABI reserved fields
+      u64 android_kabi_reserved1;
+      u64 android_kabi_reserved3;
+      u64 android_kabi_reserved4;
+      u64 android_kabi_reserved5;
+      u64 android_kabi_reserved6;
+      u64 android_kabi_reserved7;
+      u64 android_kabi_reserved8;
+
 };
 
 extern int uids_sysfs_init(void);
