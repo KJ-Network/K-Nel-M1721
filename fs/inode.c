@@ -21,6 +21,10 @@
 #include <trace/events/writeback.h>
 #include "internal.h"
 
+#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
+extern bool susfs_is_current_ksu_domain(void);
+#endif
+
 /*
  * Inode locking rules:
  *
