@@ -58,11 +58,6 @@ jobs:
         run: |
           git clone --recursive https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.branch-names.outputs.current_branch }} --depth 1 $GITHUB_WORKSPACE/workdir/source
 
-      - name: Enable Kernel-Assisted Superuser for Android
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
-          sed -i -e '$a\'$'\n''CONFIG_ASSISTED_SUPERUSER=y' arch/arm64/configs/m1721_k-nel_defconfig
-
       - name: Integrate KernelSU Next
         run: |
           cd $GITHUB_WORKSPACE/workdir/source
