@@ -43,16 +43,9 @@ jobs:
 
       - name: Get Toolchain
         run: |
-          git clone https://github.com/kdrag0n/proton-clang.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
-          cd $GITHUB_WORKSPACE/workdir/toolchain
-          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/arm-linux-gnueabi/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.tar.xz -O gcc32.tar.xz
-          tar -xvf gcc32.tar.xz
-          mv gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi gcc32
-          rm gcc32.tar.xz
-          wget https://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.tar.xz -O gcc64.tar.xz
-          tar -xvf gcc64.tar.xz
-          mv gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu gcc64
-          rm gcc64.tar.xz
+          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
+          git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
+          git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
 
       - name: Get Kernel source
         run: |
