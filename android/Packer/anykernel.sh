@@ -12,6 +12,7 @@ do.cleanup=1
 do.cleanuponabort=0
 device.name1=m1721
 device.name2=m6note
+device.name2=meizum6note
 '; } # end properties
 
 # shell variables
@@ -29,4 +30,3 @@ dump_boot;
 
 write_boot;
 ## end install
-

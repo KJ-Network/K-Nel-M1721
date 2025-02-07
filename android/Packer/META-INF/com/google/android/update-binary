@@ -498,4 +498,14 @@ if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
   cleanup;
 fi;
 
+ui_print " " " " "Cleaning GPU Cache..."
+find /data/user_de/*/*/*cache/* -iname "*shader*" -exec rm -rf {} +
+find /data/data/* -iname "*shader*" -exec rm -rf {} +
+find /data/data/* -iname "*graphitecache*" -exec rm -rf {} +
+find /data/data/* -iname "*gpucache*" -exec rm -rf {} +
+find /data_mirror/data*/*/*/*/* -iname "*shader*" -exec rm -rf {} +
+find /data_mirror/data*/*/*/*/* -iname "*graphitecache*" -exec rm -rf {} +
+find /data_mirror/data*/*/*/*/* -iname "*gpucache*" -exec rm -rf {} +
+ui_print "Done."
+
 ui_print " " " " "Done!";
