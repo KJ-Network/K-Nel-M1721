@@ -43,30 +43,34 @@ jobs:
 
       - name: Get Toolchain
         run: |
-          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
+          git clone -q https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone.git -b 12 --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
 
       - name: Get Kernel source
         run: |
           git clone --recursive https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.branch-names.outputs.current_branch }} --depth 1 $GITHUB_WORKSPACE/workdir/source
-          rm -rf $GITHUB_WORKSPACE/workdir/source/.git
 
       - name: Build Kernel
         run: |
-          export LOCALVERSION=Release-${{ github.event.inputs.LOCALVERSIONNAME }}
+          export LOCALVERSION=${{ github.event.inputs.LOCALVERSIONNAME }}
           export KBUILD_BUILD_HOST=Github-Action
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
           export ARCH="arm64"
           export SUBARCH="arm64"
           export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/lib64:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/lib:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/lib:$PATH"
+          export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+          export KBUILD_LINKER_STRING=$(ld.lld --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | sed 's/(compatible with [^)]*)//')
           export CC="clang"
+          export LLVM=1
+          export LLVM_IAS=1
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
           cd $GITHUB_WORKSPACE/workdir/source
           make O=out m1721_k-nel_defconfig
-          make -j$(nproc --all) O=out
+          make -j$(nproc --all) O=out CC="ccache clang" HOSTCC="ccache gcc" HOSTCXX="ccache g++" 2>&1
 
       - name: Check a kernel output files
         run: |
@@ -124,15 +128,14 @@ jobs:
 
       - name: Get Toolchain
         run: |
-          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
+          git clone -q https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone.git -b 12 --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
 
       - name: Get Kernel source
         run: |
           git clone --recursive https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.branch-names.outputs.current_branch }} --depth 1 $GITHUB_WORKSPACE/workdir/source
-          rm -rf $GITHUB_WORKSPACE/workdir/source/.git
-
+          
       - name: Integrate KernelSU Next
         run: |
           cd $GITHUB_WORKSPACE/workdir/source
@@ -142,19 +145,24 @@ jobs:
 
       - name: Build Kernel
         run: |
-          export LOCALVERSION=Release-${{ github.event.inputs.LOCALVERSIONNAME }}
+          export LOCALVERSION=${{ github.event.inputs.LOCALVERSIONNAME }}
           export KBUILD_BUILD_HOST=Github-Action
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
           export ARCH="arm64"
           export SUBARCH="arm64"
           export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/lib64:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/lib:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/lib:$PATH"
+          export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+          export KBUILD_LINKER_STRING=$(ld.lld --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | sed 's/(compatible with [^)]*)//')
           export CC="clang"
+          export LLVM=1
+          export LLVM_IAS=1
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
           cd $GITHUB_WORKSPACE/workdir/source
           make O=out m1721_k-nel_defconfig
-          make -j$(nproc --all) O=out
+          make -j$(nproc --all) O=out CC="ccache clang" HOSTCC="ccache gcc" HOSTCXX="ccache g++" 2>&1
 
       - name: Check a kernel output files
         run: |
