@@ -1175,6 +1175,7 @@ static inline struct request *blk_map_queue_find_tag(struct blk_queue_tag *bqt,
 	return bqt->tag_index[tag];
 }
 
+
 #define BLKDEV_DISCARD_SECURE	(1 << 0)	/* issue a secure erase */
 #define BLKDEV_DISCARD_ZERO	(1 << 1)	/* must reliably zero data */
 
@@ -1840,10 +1841,6 @@ static inline int blkdev_issue_flush(struct block_device *bdev, gfp_t gfp_mask,
 				     sector_t *error_sector)
 {
 	return 0;
-}
-
-static inline void blkdev_issue_flush_nowait(struct block_device *bdev, gfp_t gfp_mask)
-{
 }
 
 #endif /* CONFIG_BLOCK */
