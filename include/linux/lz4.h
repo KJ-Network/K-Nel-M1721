@@ -69,17 +69,6 @@
 #define LZ4_HASHTABLESIZE (1 << LZ4_MEMORY_USAGE)
 #define LZ4_HASH_SIZE_U32 (1 << LZ4_HASHLOG)
 
-#define LZ4HC_MIN_CLEVEL 3
-#define LZ4HC_DEFAULT_CLEVEL 9
-#define LZ4HC_MAX_CLEVEL 16
-
-#define LZ4HC_DICTIONARY_LOGSIZE 16
-#define LZ4HC_MAXD (1 << LZ4HC_DICTIONARY_LOGSIZE)
-#define LZ4HC_MAXD_MASK (LZ4HC_MAXD - 1)
-#define LZ4HC_HASH_LOG (LZ4HC_DICTIONARY_LOGSIZE - 1)
-#define LZ4HC_HASHTABLESIZE (1 << LZ4HC_HASH_LOG)
-#define LZ4HC_HASH_MASK (LZ4HC_HASHTABLESIZE - 1)
-
 /*-************************************************************************
  *	STREAMING CONSTANTS AND STRUCTURES
  **************************************************************************/
@@ -114,31 +103,6 @@ typedef union {
 } LZ4_stream_t;
 
 /*
- * LZ4_streamHC_t - information structure to track an LZ4HC stream.
- */
-typedef struct {
-	unsigned int hashTable[LZ4HC_HASHTABLESIZE];
-	unsigned short chainTable[LZ4HC_MAXD];
-	/* next block to continue on current prefix */
-	const unsigned char *end;
-	/* All index relative to this position */
-	const unsigned char *base;
-	/* alternate base for extDict */
-	const unsigned char *dictBase;
-	/* below that point, need extDict */
-	unsigned int dictLimit;
-	/* below that point, no more dict */
-	unsigned int lowLimit;
-	/* index from which to continue dict update */
-	unsigned int nextToUpdate;
-	unsigned int compressionLevel;
-} LZ4HC_CCtx_internal;
-typedef union {
-	size_t table[LZ4_STREAMHCSIZE_SIZET];
-	LZ4HC_CCtx_internal internal_donotuse;
-} LZ4_streamHC_t;
-
-/*
  * LZ4_streamDecode_t - information structure to track an
  *	LZ4 stream during decompression.
  *
@@ -165,7 +129,6 @@ typedef union {
  *	SIZE OF STATE
  **************************************************************************/
 #define LZ4_MEM_COMPRESS sizeof(LZ4_stream_t)
-#define LZ4HC_MEM_COMPRESS LZ4_STREAMHCSIZE
 
 /*-************************************************************************
  *	Compression Functions
@@ -310,120 +273,6 @@ int LZ4_decompress_safe(const char *source, char *dest, int compressedSize,
 int LZ4_decompress_safe_partial(const char *source, char *dest,
 				int compressedSize, int targetOutputSize,
 				int maxDecompressedSize);
-
-/*-************************************************************************
- *	LZ4 HC Compression
- **************************************************************************/
-
-/**
- * LZ4_compress_HC() - Compress data from `src` into `dst`, using HC algorithm
- * @src: source address of the original data
- * @dst: output buffer address of the compressed data
- * @srcSize: size of the input data. Max supported value is LZ4_MAX_INPUT_SIZE
- * @dstCapacity: full or partial size of buffer 'dst',
- *	which must be already allocated
- * @compressionLevel: Recommended values are between 4 and 9, although any
- *	value between 1 and LZ4HC_MAX_CLEVEL will work.
- *	Values >LZ4HC_MAX_CLEVEL behave the same as 16.
- * @wrkmem: address of the working memory.
- *	This requires 'wrkmem' of size LZ4HC_MEM_COMPRESS.
- *
- * Compress data from 'src' into 'dst', using the more powerful
- * but slower "HC" algorithm. Compression is guaranteed to succeed if
- * `dstCapacity >= LZ4_compressBound(srcSize)
- *
- * Return : the number of bytes written into 'dst' or 0 if compression fails.
- */
-int LZ4_compress_HC(const char *src, char *dst, int srcSize, int dstCapacity,
-		    int compressionLevel, void *wrkmem);
-
-/**
- * LZ4_resetStreamHC() - Init an allocated 'LZ4_streamHC_t' structure
- * @streamHCPtr: pointer to the 'LZ4_streamHC_t' structure
- * @compressionLevel: Recommended values are between 4 and 9, although any
- *	value between 1 and LZ4HC_MAX_CLEVEL will work.
- *	Values >LZ4HC_MAX_CLEVEL behave the same as 16.
- *
- * An LZ4_streamHC_t structure can be allocated once
- * and re-used multiple times.
- * Use this function to init an allocated `LZ4_streamHC_t` structure
- * and start a new compression.
- */
-void LZ4_resetStreamHC(LZ4_streamHC_t *streamHCPtr, int compressionLevel);
-
-/**
- * LZ4_loadDictHC() - Load a static dictionary into LZ4_streamHC
- * @streamHCPtr: pointer to the LZ4HC_stream_t
- * @dictionary: dictionary to load
- * @dictSize: size of dictionary
- *
- * Use this function to load a static dictionary into LZ4HC_stream.
- * Any previous data will be forgotten, only 'dictionary'
- * will remain in memory.
- * Loading a size of 0 is allowed.
- *
- * Return : dictionary size, in bytes (necessarily <= 64 KB)
- */
-int LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
-		   int dictSize);
-
-/**
- * LZ4_compress_HC_continue() - Compress 'src' using data from previously
- *	compressed blocks as a dictionary using the HC algorithm
- * @streamHCPtr: Pointer to the previous 'LZ4_streamHC_t' structure
- * @src: source address of the original data
- * @dst: output buffer address of the compressed data,
- *	which must be already allocated
- * @srcSize: size of the input data. Max supported value is LZ4_MAX_INPUT_SIZE
- * @maxDstSize: full or partial size of buffer 'dest'
- *	which must be already allocated
- *
- * These functions compress data in successive blocks of any size, using
- * previous blocks as dictionary. One key assumption is that previous
- * blocks (up to 64 KB) remain read-accessible while
- * compressing next blocks. There is an exception for ring buffers,
- * which can be smaller than 64 KB.
- * Ring buffers scenario is automatically detected and handled by
- * LZ4_compress_HC_continue().
- * Before starting compression, state must be properly initialized,
- * using LZ4_resetStreamHC().
- * A first "fictional block" can then be designated as
- * initial dictionary, using LZ4_loadDictHC() (Optional).
- * Then, use LZ4_compress_HC_continue()
- * to compress each successive block. Previous memory blocks
- * (including initial dictionary when present) must remain accessible
- * and unmodified during compression.
- * 'dst' buffer should be sized to handle worst case scenarios, using
- *  LZ4_compressBound(), to ensure operation success.
- *  If, for any reason, previous data blocks can't be preserved unmodified
- *  in memory during next compression block,
- *  you must save it to a safer memory space, using LZ4_saveDictHC().
- * Return value of LZ4_saveDictHC() is the size of dictionary
- * effectively saved into 'safeBuffer'.
- *
- * Return: Number of bytes written into buffer 'dst'  or 0 if compression fails
- */
-int LZ4_compress_HC_continue(LZ4_streamHC_t *streamHCPtr, const char *src,
-			     char *dst, int srcSize, int maxDstSize);
-
-/**
- * LZ4_saveDictHC() - Save static dictionary from LZ4HC_stream
- * @streamHCPtr: pointer to the 'LZ4HC_stream_t' structure
- * @safeBuffer: buffer to save dictionary to, must be already allocated
- * @maxDictSize: size of 'safeBuffer'
- *
- * If previously compressed data block is not guaranteed
- * to remain available at its memory location,
- * save it into a safer place (char *safeBuffer).
- * Note : you don't need to call LZ4_loadDictHC() afterwards,
- * dictionary is immediately usable, you can therefore call
- * LZ4_compress_HC_continue().
- *
- * Return : saved dictionary size in bytes (necessarily <= maxDictSize),
- *	or 0 if error.
- */
-int LZ4_saveDictHC(LZ4_streamHC_t *streamHCPtr, char *safeBuffer,
-		   int maxDictSize);
 
 /*-*********************************************
  *	Streaming Compression Functions

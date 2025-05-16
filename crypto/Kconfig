@@ -1656,15 +1656,6 @@ config CRYPTO_LZ4KD
 	help
 	  This is the LZ4KD algorithm.
 
-config CRYPTO_LZ4HC
-	tristate "LZ4HC compression algorithm"
-	select CRYPTO_ALGAPI
-	select CRYPTO_ACOMP2
-	select LZ4HC_COMPRESS
-	select LZ4_DECOMPRESS
-	help
-	  This is the LZ4 high compression mode algorithm.
-
 config CRYPTO_ZSTD
 	tristate "Zstd compression algorithm"
 	select CRYPTO_ALGAPI

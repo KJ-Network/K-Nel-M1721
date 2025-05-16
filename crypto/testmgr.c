@@ -3616,22 +3616,6 @@ static const struct alg_test_desc alg_test_descs[] = {
 			}
 		}
 	}, {
-		.alg = "lz4hc",
-		.test = alg_test_comp,
-		.fips_allowed = 1,
-		.suite = {
-			.comp = {
-				.comp = {
-					.vecs = lz4hc_comp_tv_template,
-					.count = LZ4HC_COMP_TEST_VECTORS
-				},
-				.decomp = {
-					.vecs = lz4hc_decomp_tv_template,
-					.count = LZ4HC_DECOMP_TEST_VECTORS
-				}
-			}
-		}
-	}, {
 		.alg = "lzo",
 		.test = alg_test_comp,
 		.fips_allowed = 1,
