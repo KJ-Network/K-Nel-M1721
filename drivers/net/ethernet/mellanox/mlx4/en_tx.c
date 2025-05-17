@@ -70,10 +70,13 @@ int mlx4_en_create_tx_ring(struct mlx4_en_priv *priv,
 	ring->full_size = ring->size - HEADROOM - MAX_DESC_TXBBS;
 
 	tmp = size * sizeof(struct mlx4_en_tx_info);
-	ring->tx_info = kvmalloc_node(tmp, GFP_KERNEL, node);
+	ring->tx_info = kmalloc_node(tmp, GFP_KERNEL | __GFP_NOWARN, node);
 	if (!ring->tx_info) {
-		err = -ENOMEM;
-		goto err_ring;
+		ring->tx_info = vmalloc(tmp);
+		if (!ring->tx_info) {
+			err = -ENOMEM;
+			goto err_ring;
+		}
 	}
 
 	en_dbg(DRV, priv, "Allocated tx_info ring at addr:%p size:%d\n",

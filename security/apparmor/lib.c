@@ -75,3 +75,4 @@ void aa_info_message(const char *str)
 	}
 	printk(KERN_INFO "AppArmor: %s\n", str);
 }
+

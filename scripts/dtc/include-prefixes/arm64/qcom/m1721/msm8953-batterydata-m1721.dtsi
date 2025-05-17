@@ -1,0 +1,96 @@
+/* Copyright (c) 2021, MeizuCustoms
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+qcom,deerneng-atl446580_4000mah {
+    qcom,batt-id-kohm = <0x32>;
+    qcom,battery-beta = <0xd34>;
+    qcom,battery-type = "deerneng_atl446580_4000mah";
+    qcom,checksum = <0x8aaf>;
+    qcom,chg-rs-to-rslow = <0xca280>;
+    qcom,chg-rslow-comp-c1 = <0x30d3ae>;
+    qcom,chg-rslow-comp-c2 = <0x43103e>;
+    qcom,chg-rslow-comp-thr = <0xa2>;
+    qcom,fastchg-current-ma = <0xfa0>;
+    qcom,fg-cc-cv-threshold-mv = <0x1126>;
+    qcom,fg-profile-data = <0xdf83c87c 0x19815577 0x6183ba6f 0x36895c94 0x3282b299 0xb3bc3ec9 0x550ffa83 0x497d5b81 0xa4775f83 0xab5deb83 0xc28f4982 0x89a75bd 0xaeca520d 0xb60f6859 0x1470eefc 0x6e3e0c45 0xe6410000 0x5a461c30 0x1e2a0000 0x00 0x00 0x6f6bfb69 0x9971a98b 0xfb75d06b 0x216d1579 0x2a6f2d68 0x583504a8 0x214163ff 0x64a0710c 0x2800ff36 0xf0113003 0x0c>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+    qcom,max-voltage-uv = <0x432380>;
+    qcom,nom-batt-capacity-mah = <0xfa0>;
+};
+
+qcom,deerneng-ca436580g_4000mah {
+    qcom,batt-id-kohm = <0x64>;
+    qcom,battery-beta = <0xd34>;
+    qcom,battery-type = "deerneng-ca436580g_4000mah";
+    qcom,checksum = <0xc816>;
+    qcom,chg-rs-to-rslow = <0xa7bf6>;
+    qcom,chg-rslow-comp-c1 = <0x2eec11>;
+    qcom,chg-rslow-comp-c2 = <0x4856fb>;
+    qcom,chg-rslow-comp-thr = <0xac>;
+    qcom,fastchg-current-ma = <0xfa0>;
+    qcom,fg-cc-cv-threshold-mv = <0x1126>;
+    qcom,fg-profile-data = <0xf183767d 0x8d81017c 0x5b831667 0xe582728d 0xa82fa99 0x8bbcabc8 0x5a0f0288 0xbd7dbe81 0x317c4f83 0xd6bff72 0x3852782 0x3e9a7dbd 0xbeca5a0e 0xcd0fbb58 0x1470eefc 0x4545e937 0x363b0000 0x5345392a 0xdd370000 0x00 0x00 0x5c6a7769 0x9c631d80 0xc4675a60 0xcf629e79 0xcc640359 0x7c7e7a91 0x1d0161f7 0x5da0710c 0x2800ff36 0xf0113003 0x0c>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+    qcom,max-voltage-uv = <0x432380>;
+    qcom,nom-batt-capacity-mah = <0xfa0>;
+};
+
+qcom,dummy_cell_4020mah {
+    qcom,batt-id-kohm = <0x50>;
+    qcom,battery-beta = <0xd34>;
+    qcom,battery-type = "dummy_cell_4000mah";
+    qcom,checksum = <0x952e>;
+    qcom,chg-rs-to-rslow = <0xb9ddd>;
+    qcom,chg-rslow-comp-c1 = <0x3840d2>;
+    qcom,chg-rslow-comp-c2 = <0x627b75>;
+    qcom,chg-rslow-comp-thr = <0xb7>;
+    qcom,fastchg-current-ma = <0xfa0>;
+    qcom,fg-cc-cv-threshold-mv = <0x1126>;
+    qcom,fg-profile-data = <0xf0836d7d 0x9881227c 0x5d83656c 0x4b839b8d 0xeb813a9a 0x85bc71c8 0x5b110188 0x977da281 0x217c5283 0xa969ae79 0xbe861f82 0x739abebd 0x2fcb5a0e 0xdc0f8359 0x1470eefc 0x47447b3f 0xeb400000 0x5466930 0xfe1a0000 0x00 0x00 0x2b6bd169 0x6a731291 0x93776c71 0x46765f71 0x5e75426b 0x96666a2 0x24da5b73 0x5da0710c 0x2800ff36 0xf0113003 0x0c>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+    qcom,max-voltage-uv = <0x432380>;
+    qcom,nom-batt-capacity-mah = <0xfb4>;
+};
+
+qcom,jiade_atl446580_4020mah {
+    qcom,batt-id-kohm = <0x12c>;
+    qcom,battery-beta = <0xd34>;
+    qcom,battery-type = "jiade_atl446580_4000mah";
+    qcom,checksum = <0xb43>;
+    qcom,chg-rs-to-rslow = <0xc8771>;
+    qcom,chg-rslow-comp-c1 = <0x2ddb09>;
+    qcom,chg-rslow-comp-c2 = <0x3cda94>;
+    qcom,chg-rslow-comp-thr = <0x9f>;
+    qcom,fastchg-current-ma = <0xfa0>;
+    qcom,fg-cc-cv-threshold-mv = <0x1126>;
+    qcom,fg-profile-data = <0xec833f7d 0x7181f677 0x55839752 0x52804587 0x1682ab9a 0xf3bd44cb 0x5b0e0588 0xeb7dde81 0x557c4f83 0x42704270 0x55845082 0x9299d5bc 0xb0c95a0d 0xb50f5059 0x1470eefc 0x833f1d3e 0x7b400000 0x4345bc30 0x3f290000 0x00 0x00 0xec6aed69 0x8978f789 0x546f5463 0x6b610a80 0xf06cd25b 0xa17c2ea1 0x1a1162e3 0x5fa0710c 0x2800ff36 0xf0113003 0x0c>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+    qcom,max-voltage-uv = <0x432380>;
+    qcom,nom-batt-capacity-mah = <0xfb4>;
+};
+
+qcom,jiade_ca436580g_4020mah {
+    qcom,batt-id-kohm = <0xc8>;
+    qcom,battery-beta = <0xd34>;
+    qcom,battery-type = "jiade_ca436580g_4000mah";
+    qcom,checksum = <0x952e>;
+    qcom,chg-rs-to-rslow = <0xb9ddd>;
+    qcom,chg-rslow-comp-c1 = <0x3840d2>;
+    qcom,chg-rslow-comp-c2 = <0x627b75>;
+    qcom,chg-rslow-comp-thr = <0xb7>;
+    qcom,fastchg-current-ma = <0xfa0>;
+    qcom,fg-cc-cv-threshold-mv = <0x1126>;
+    qcom,fg-profile-data = <0xf0836d7d 0x9881227c 0x5d83656c 0x4b839b8d 0xeb813a9a 0x85bc71c8 0x5b110188 0x977da281 0x217c5283 0xa969ae79 0xbe861f82 0x739abebd 0x2fcb5a0e 0xdc0f8359 0x1470eefc 0x47447b3f 0xeb400000 0x5466930 0xfe1a0000 0x00 0x00 0x2b6bd169 0x6a731291 0x93776c71 0x46765f71 0x5e75426b 0x96666a2 0x24da5b73 0x5da0710c 0x2800ff36 0xf0113003 0x0c>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+    qcom,max-voltage-uv = <0x432380>;
+    qcom,nom-batt-capacity-mah = <0xfb4>;
+};

@@ -43,8 +43,12 @@ struct westwood {
 };
 
 /* TCP Westwood functions and constants */
-#define TCP_WESTWOOD_RTT_MIN   (HZ/20)	/* 50ms */
-#define TCP_WESTWOOD_INIT_RTT  (20*HZ)	/* maybe too conservative?! */
+int tcp_westwood_rtt_min = 30;
+int tcp_westwood_init_rtt = 200;
+
+/* Let's make them tunable */
+module_param_named(rtt_min, tcp_westwood_rtt_min, int, 0644);
+module_param_named(rtt_init, tcp_westwood_init_rtt, int, 0644);
 
 /*
  * @tcp_westwood_create
@@ -67,8 +71,8 @@ static void tcp_westwood_init(struct sock *sk)
 	w->accounted = 0;
 	w->cumul_ack = 0;
 	w->reset_rtt_min = 1;
-	w->rtt_min = w->rtt = TCP_WESTWOOD_INIT_RTT;
-	w->rtt_win_sx = tcp_time_stamp;
+	w->rtt_min = w->rtt = msecs_to_jiffies(tcp_westwood_init_rtt);
+	w->rtt_win_sx = tcp_jiffies32;
 	w->snd_una = tcp_sk(sk)->snd_una;
 	w->first_ack = 1;
 }
@@ -116,7 +120,7 @@ static void tcp_westwood_pkts_acked(struct sock *sk,
 static void westwood_update_window(struct sock *sk)
 {
 	struct westwood *w = inet_csk_ca(sk);
-	s32 delta = tcp_time_stamp - w->rtt_win_sx;
+	s32 delta = tcp_jiffies32 - w->rtt_win_sx;
 
 	/* Initialize w->snd_una with the first acked sequence number in order
 	 * to fix mismatch between tp->snd_una and w->snd_una for the first
@@ -136,11 +140,11 @@ static void westwood_update_window(struct sock *sk)
 	 * Obviously on a LAN we reasonably will always have
 	 * right_bound = left_bound + WESTWOOD_RTT_MIN
 	 */
-	if (w->rtt && delta > max_t(u32, w->rtt, TCP_WESTWOOD_RTT_MIN)) {
+	if (w->rtt && delta > max_t(u32, w->rtt, msecs_to_jiffies(tcp_westwood_rtt_min))) {
 		westwood_filter(w, delta);
 
 		w->bk = 0;
-		w->rtt_win_sx = tcp_time_stamp;
+		w->rtt_win_sx = tcp_jiffies32;
 	}
 }
 
@@ -265,8 +269,8 @@ static size_t tcp_westwood_info(struct sock *sk, u32 ext, int *attr,
 	if (ext & (1 << (INET_DIAG_VEGASINFO - 1))) {
 		info->vegas.tcpv_enabled = 1;
 		info->vegas.tcpv_rttcnt	= 0;
-		info->vegas.tcpv_rtt	= jiffies_to_usecs(ca->rtt),
-		info->vegas.tcpv_minrtt	= jiffies_to_usecs(ca->rtt_min),
+		info->vegas.tcpv_rtt	= jiffies_to_usecs(ca->rtt);
+		info->vegas.tcpv_minrtt	= jiffies_to_usecs(ca->rtt_min);
 
 		*attr = INET_DIAG_VEGASINFO;
 		return sizeof(struct tcpvegas_info);
@@ -278,6 +282,7 @@ static struct tcp_congestion_ops tcp_westwood __read_mostly = {
 	.init		= tcp_westwood_init,
 	.ssthresh	= tcp_reno_ssthresh,
 	.cong_avoid	= tcp_reno_cong_avoid,
+	.undo_cwnd      = tcp_reno_undo_cwnd,
 	.cwnd_event	= tcp_westwood_event,
 	.in_ack_event	= tcp_westwood_ack,
 	.get_info	= tcp_westwood_info,

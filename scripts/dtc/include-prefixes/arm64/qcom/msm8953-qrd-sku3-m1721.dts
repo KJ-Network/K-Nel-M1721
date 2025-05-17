@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2015-2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+
+#include "msm8953.dtsi"
+#include "pmi8950.dtsi"
+#include "msm8953-pmi8950.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. MSM8953 + PMI8950 QRD SKU3";
+	compatible = "qcom,msm8953-qrd-sku3",
+		   "qcom,msm8953-qrd", "qcom,msm8953", "qcom,qrd";
+	qcom,board-id= <0x0b 0>;
+};
+
+#include "msm8953-qrd-sku3.dtsi"
+#include "msm8953-mdss-panels.dtsi"
+#include "msm8953-camera-sensor-qrd.dtsi"
+
+#include "m1721/msm8953-m1721.dtsi"

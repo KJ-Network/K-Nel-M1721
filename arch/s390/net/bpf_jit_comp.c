@@ -1037,7 +1037,7 @@ static noinline int bpf_jit_insn(struct bpf_jit *jit, struct bpf_prog *fp, int i
 		}
 		/* lgr %b0,%r2: load return value into %b0 */
 		EMIT4(0xb9040000, BPF_REG_0, REG_2);
-		if (bpf_helper_changes_skb_data((void *)func)) {
+		if (bpf_helper_changes_pkt_data((void *)func)) {
 			jit->seen |= SEEN_SKB_CHANGE;
 			/* lg %b1,ST_OFF_SKBP(%r15) */
 			EMIT6_DISP_LH(0xe3000000, 0x0004, BPF_REG_1, REG_0,
@@ -1046,7 +1046,7 @@ static noinline int bpf_jit_insn(struct bpf_jit *jit, struct bpf_prog *fp, int i
 		}
 		break;
 	}
-	case BPF_JMP | BPF_CALL | BPF_X:
+	case BPF_JMP | BPF_TAIL_CALL:
 		/*
 		 * Implicit input:
 		 *  B1: pointer to ctx
@@ -1395,10 +1395,11 @@ struct bpf_prog *bpf_int_jit_compile(struct bpf_prog *fp)
 			print_fn_code(jit.prg_buf, jit.size_prg);
 	}
 	if (jit.prg_buf) {
-		set_memory_ro((unsigned long)header, header->pages);
+		bpf_jit_binary_lock_ro(header);
 		fp->bpf_func = (void *) jit.prg_buf;
 		fp->jited = 1;
 	}
+	fp->jited_len = jit.size;
 free_addrs:
 	kfree(jit.addrs);
 out:
@@ -1406,22 +1407,4 @@ out:
 		bpf_jit_prog_release_other(fp, fp == orig_fp ?
 					   tmp : orig_fp);
 	return fp;
-}
-
-/*
- * Free eBPF program
- */
-void bpf_jit_free(struct bpf_prog *fp)
-{
-	unsigned long addr = (unsigned long)fp->bpf_func & PAGE_MASK;
-	struct bpf_binary_header *header = (void *)addr;
-
-	if (!fp->jited)
-		goto free_filter;
-
-	set_memory_rw(addr, header->pages);
-	bpf_jit_binary_free(header);
-
-free_filter:
-	bpf_prog_unlock_free(fp);
 }

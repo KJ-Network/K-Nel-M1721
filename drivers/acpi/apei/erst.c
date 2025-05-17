@@ -513,7 +513,7 @@ retry:
 	if (i < erst_record_id_cache.len)
 		goto retry;
 	if (erst_record_id_cache.len >= erst_record_id_cache.size) {
-		int new_size;
+		int new_size, alloc_size;
 		u64 *new_entries;
 
 		new_size = erst_record_id_cache.size * 2;
@@ -524,7 +524,11 @@ retry:
 				pr_warn(FW_WARN "too many record IDs!\n");
 			return 0;
 		}
-		new_entries = kvmalloc(new_size * sizeof(entries[0]), GFP_KERNEL);
+		alloc_size = new_size * sizeof(entries[0]);
+		if (alloc_size < PAGE_SIZE)
+			new_entries = kmalloc(alloc_size, GFP_KERNEL);
+		else
+			new_entries = vmalloc(alloc_size);
 		if (!new_entries)
 			return -ENOMEM;
 		memcpy(new_entries, entries,

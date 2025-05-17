@@ -47,7 +47,7 @@ static ssize_t disable_mback_write(struct file *file, const char __user *buf,
 
   mback_disable = i;
 
-  c = strlen(buf);
+  c = strlen(value);
   *ppos = c;
 	return c;
 }
