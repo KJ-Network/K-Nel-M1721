@@ -26,4 +26,3 @@ obj-$(CONFIG_GENERIC_MSI_IRQ_DOMAIN) += platform-msi.o
 
 ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
 
-obj-$(CONFIG_ASSISTED_SUPERUSER) += superuser.o

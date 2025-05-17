@@ -56,11 +56,6 @@ jobs:
           git submodule update --init --remote --rebase --recursive utils/lxc-docker
           sed -i -e '$a\'$'\n''# CONFIG_ANDROID_PARANOID_NETWORK is not set\nCONFIG_DOCKER=y\nCONFIG_DOCKER_DEVICE_MAPPER=y\nCONFIG_DOCKER_OVERLAY_FS=y' arch/arm64/configs/m1721_k-nel_defconfig
 
-      - name: Enable Kernel-Assisted Superuser for Android
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
-          sed -i -e '$a\'$'\n''CONFIG_ASSISTED_SUPERUSER=y' arch/arm64/configs/m1721_k-nel_defconfig
-
       - name: Build Kernel
         run: |
           export LOCALVERSION=${{ steps.get-tag.outputs.TAG_NAME }}
