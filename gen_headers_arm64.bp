@@ -472,6 +472,8 @@ gen_headers_out_arm64 = [
     "linux/qcota.h",
     "linux/qg-profile.h",
     "linux/qg.h",
+    "linux/qbg-profile.h",
+    "linux/qbg.h",
     "linux/qnx4_fs.h",
     "linux/qnxtypes.h",
     "linux/qrng.h",
@@ -514,6 +516,7 @@ gen_headers_out_arm64 = [
     "linux/shm.h",
     "linux/signal.h",
     "linux/signalfd.h",
+    "linux/slatecom_interface.h",
     "linux/smcinvoke.h",
     "linux/smiapp.h",
     "linux/snmp.h",
@@ -631,6 +634,18 @@ gen_headers_out_arm64 = [
     "media/msm_sde_rotator.h",
     "media/msm_vidc.h",
     "media/msm_vidc_private.h",
+    "media/msm_cam_sensor-legacy.h",
+    "media/msm_jpeg_dma-legacy.h",
+    "media/msm_fd-legacy.h",
+    "media/msm_jpeg-legacy.h",
+    "media/msm_camera-legacy.h",
+    "media/msmb_pproc-legacy.h",
+    "media/msmb_isp-legacy.h",
+    "media/msmb_generic_buf_mgr-legacy.h",
+    "media/msmb_ispif-legacy.h",
+    "media/msm_camsensor_sdk-legacy.h",
+    "media/msmb_camera-legacy.h",
+    "media/msm_isp-legacy.h",
     "media/msmb_camera.h",
     "media/msmb_generic_buf_mgr.h",
     "media/msmb_isp.h",
@@ -681,6 +696,7 @@ gen_headers_out_arm64 = [
     "sound/snd_sst_tokens.h",
     "sound/tlv.h",
     "sound/usb_stream.h",
+    "sound/msm-cirrus-playback.h",
     "video/edid.h",
     "video/msm_hdmi_hdcp_mgr.h",
     "video/msm_hdmi_modes.h",
@@ -946,7 +962,10 @@ genrule {
 
 genrule {
     name: "qti_generate_kernel_headers_arm64",
-    tools: ["headers_install.sh"],
+    tools: [
+        "headers_install.sh",
+        "unifdef",
+    ],
     tool_files: [
         "kernel_headers.py",
     ],
@@ -967,6 +986,7 @@ genrule {
         "--new_gen_headers_bp $(location :qti_generate_gen_headers_arm64) " +
         "--version_makefile $(location Makefile) " +
         "--headers_install $(location headers_install.sh) " +
+        "--unifdef $(location unifdef) " +
         "--include_uapi $(locations include/uapi/**/*.h)",
     out: ["linux/version.h"] + gen_headers_out_arm64,
 }

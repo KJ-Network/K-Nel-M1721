@@ -2940,7 +2940,7 @@ static int cs35l35_late_probe(struct snd_soc_card *card)
 	int ret = 0;
 	bool found = false;
 
-    pr_info("%s(): enter\n", __func__);
+    pr_debug("%s(): enter\n", __func__);
 
 	/* for each BE DAI link... */
 	list_for_each_entry(rtd, &card->rtd_list, list)  {
@@ -2960,7 +2960,7 @@ static int cs35l35_late_probe(struct snd_soc_card *card)
 
 	dapm = snd_soc_component_get_dapm(&rtd->codec->component);
 
-	pr_info("%s(): setting dapm parameters\n", __func__);
+	pr_debug("%s(): setting dapm parameters\n", __func__);
 
     snd_soc_dapm_ignore_suspend(dapm, "AMP Playback");
     snd_soc_dapm_ignore_suspend(dapm, "AMP Capture");
@@ -2971,7 +2971,7 @@ static int cs35l35_late_probe(struct snd_soc_card *card)
 
 	msm_cirrus_callback();
 
-    pr_info("%s(): exit\n", __func__);
+    pr_debug("%s(): exit\n", __func__);
     return 0;
 }
 #endif

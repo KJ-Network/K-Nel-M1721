@@ -575,7 +575,7 @@ static void a5xx_preemption_close(struct kgsl_device *device)
 	unsigned int i;
 
 	del_timer(&preempt->timer);
-	kgsl_free_global(device, &preempt->counters);
+	kgsl_free_global(device, &preempt->scratch);
 	a5xx_preemption_iommu_close(adreno_dev);
 
 	FOR_EACH_RINGBUFFER(adreno_dev, rb, i) {
@@ -602,14 +602,14 @@ int a5xx_preemption_init(struct adreno_device *adreno_dev)
 		(unsigned long) adreno_dev);
 
 	/* Allocate mem for storing preemption counters */
-	ret = kgsl_allocate_global(device, &preempt->counters,
+	ret = kgsl_allocate_global(device, &preempt->scratch,
 		adreno_dev->num_ringbuffers *
 		A5XX_CP_CTXRECORD_PREEMPTION_COUNTER_SIZE, 0, 0,
 		"preemption_counters");
 	if (ret)
 		goto err;
 
-	addr = preempt->counters.gpuaddr;
+	addr = preempt->scratch.gpuaddr;
 
 	/* Allocate mem for storing preemption switch record */
 	FOR_EACH_RINGBUFFER(adreno_dev, rb, i) {

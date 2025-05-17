@@ -168,7 +168,7 @@ static int cs35l35_wait_for_pdn(struct cs35l35_private *cs35l35)
 {
 	int ret;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	if (cs35l35->pdata.ext_bst) {
 		usleep_range(5000, 5500);
@@ -194,7 +194,7 @@ static int cs35l35_sdin_event(struct snd_soc_dapm_widget *w,
 	struct cs35l35_private *cs35l35 = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
@@ -243,7 +243,7 @@ static int cs35l35_main_amp_event(struct snd_soc_dapm_widget *w,
 	unsigned int reg[4];
 	int i;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
@@ -327,7 +327,7 @@ static int cs35l35_put_sync(struct snd_kcontrol *kcontrol,
 	unsigned int val;
 	int ret;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	snd_soc_dapm_mutex_lock(dapm);
 
@@ -409,7 +409,7 @@ static int cs35l35_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct cs35l35_private *cs35l35 = snd_soc_codec_get_drvdata(codec);
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:
@@ -497,7 +497,7 @@ static int cs35l35_get_clk_config(int sysclk, int srate)
 {
 	int i;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	for (i = 0; i < ARRAY_SIZE(cs35l35_clk_ctl); i++) {
 		if (cs35l35_clk_ctl[i].sysclk == sysclk &&
@@ -650,7 +650,7 @@ static int cs35l35_pcm_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = dai->codec;
 	struct cs35l35_private *cs35l35 = snd_soc_codec_get_drvdata(codec);
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	if (!substream->runtime)
 		return 0;
@@ -680,7 +680,7 @@ static int cs35l35_pdm_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = dai->codec;
 	struct cs35l35_private *cs35l35 = snd_soc_codec_get_drvdata(codec);
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	if (!substream->runtime)
 		return 0;
@@ -764,7 +764,7 @@ static int cs35l35_codec_set_sysclk(struct snd_soc_codec *codec,
 	int clksrc;
 	int ret = 0;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	switch (clk_id) {
 	case 0:
@@ -816,7 +816,7 @@ static int cs35l35_boost_inductor(struct cs35l35_private *cs35l35,
 	struct regmap *regmap = cs35l35->regmap;
 	unsigned int bst_ipk = 0;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	/*
 	 * Digital Boost Converter Configuration for feedback,
@@ -889,7 +889,7 @@ static int cs35l35_codec_probe(struct snd_soc_codec *codec)
 	struct monitor_cfg *monitor_config = &cs35l35->pdata.mon_cfg;
 	int ret;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	/* Set Platform Data */
 	if (cs35l35->pdata.bst_vctl)
@@ -1177,7 +1177,7 @@ static int cs35l35_handle_of_data(struct i2c_client *i2c_client,
 	const int mon_array_size = imon_array_size - 1;
 	int ret = 0;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	if (!np)
 		return 0;
@@ -1541,7 +1541,7 @@ static int cs35l35_i2c_probe(struct i2c_client *i2c_client,
 	unsigned int devid = 0;
 	unsigned int reg;
 
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	cs35l35 = devm_kzalloc(dev, sizeof(struct cs35l35_private), GFP_KERNEL);
 	if (!cs35l35)
@@ -1704,7 +1704,7 @@ err:
 
 static int cs35l35_i2c_remove(struct i2c_client *client)
 {
-	pr_err("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 	snd_soc_unregister_codec(&client->dev);
 	return 0;
 }

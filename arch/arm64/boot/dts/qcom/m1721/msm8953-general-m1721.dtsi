@@ -78,6 +78,7 @@
 			qcom,parallel-usb-9v-min-current-ma = <900>;
 			qcom,parallel-usb-min-current-ma = <1400>;
 			qcom,vchg_sns-vadc = <&pmi8950_vadc>;
+			qcom,vusbin-vadc = <&pmi8950_vadc>;
 			qcom,usbchg_temp-vadc = <&pm8953_vadc>;
 			qcom,board_temp-vadc = <&pm8953_vadc>;
 			qcom,vchg-adc-channel-id = <3>;

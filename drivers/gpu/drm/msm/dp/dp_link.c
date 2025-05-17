@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012-2018, 2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018,2020-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,6 +17,8 @@
 
 #include "dp_link.h"
 #include "dp_panel.h"
+
+#include <uapi/drm/drm_mode.h>
 
 enum dynamic_range {
 	DP_DYNAMIC_RANGE_RGB_VESA = 0x00,
@@ -963,9 +966,15 @@ static int dp_link_psm_config(struct dp_link *dp_link,
 
 	link = container_of(dp_link, struct dp_link_private, dp_link);
 
-	if (enable)
-		ret = drm_dp_link_power_down(link->aux->drm_aux, link_info);
-	else
+	if (enable) {
+		if (dp_link->power_mode != DRM_MODE_DPMS_STANDBY
+				&& dp_link->power_mode != DRM_MODE_DPMS_SUSPEND)
+			ret = drm_dp_link_power_down(link->aux->drm_aux,
+					link_info);
+		else
+			ret = drm_dp_link_power_down_aux_up(link->aux->drm_aux,
+					link_info);
+	} else
 		ret = drm_dp_link_power_up(link->aux->drm_aux, link_info);
 
 	if (ret)

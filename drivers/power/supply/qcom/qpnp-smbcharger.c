@@ -285,6 +285,7 @@ struct smbchg_chip {
 	bool				skip_usb_notification;
 	u32				vchg_adc_channel;
 	u32				vusbin_adc_channel; // mCharge
+	struct qpnp_vadc_chip		*vusbin_vadc_dev;
 	struct qpnp_vadc_chip		*vchg_vadc_dev;
 
 	/* mCharge ._. */
@@ -7743,31 +7744,26 @@ int mcharger_set_high_usb_chg_current(int current_ma) {
 }
 
 int smbchg_get_vchar_usbin(void) {
-	int rc = -1;
+	int usbin = -EINVAL, rc = -EINVAL;
 	struct qpnp_vadc_result adc_result;
+	struct smbchg_chip *chip = g_tmp_chip;
 
-	if (!g_tmp_chip)
+	if (!chip)
 		return rc;
 
-	if (!is_usb_present(g_tmp_chip) && !is_dc_present(g_tmp_chip))
-      	return 0;
-	
-	if (!g_tmp_chip->vchg_vadc_dev)
-		return -EINVAL;
-
-	if (g_tmp_chip->vusbin_adc_channel == -EINVAL)
-		return -EINVAL;
-
-	rc = qpnp_vadc_read(g_tmp_chip->vchg_vadc_dev, 
-						g_tmp_chip->vusbin_adc_channel, &adc_result);
-	if (rc) {
-		pr_err(
+	if (chip->vusbin_vadc_dev && chip->vusbin_adc_channel != -EINVAL) {
+		rc = qpnp_vadc_read(chip->vusbin_vadc_dev,
+				chip->vusbin_adc_channel, &adc_result);
+		if (rc) {
+			pr_smb(PR_STATUS,
 				"error in VUSBIN (channel-%d) read rc = %d\n",
-						g_tmp_chip->vusbin_adc_channel, rc);
-		return 0;
+						chip->vusbin_adc_channel, rc);
+			return 0;
+		}
+		usbin = div_s64(adc_result.measurement, 1000);
 	}
 
-	return div_s64(adc_result.measurement, 1000);
+	return usbin;
 }
 
 #define USBCHG_DEFAULT_TEMP 25
@@ -9040,7 +9036,8 @@ static int smbchg_probe(struct platform_device *pdev)
 	struct smbchg_chip *chip;
 	struct power_supply *typec_psy = NULL;
 	struct qpnp_vadc_chip *vadc_dev = NULL, *vchg_vadc_dev = NULL,
-						  *vadc_usbchg_dev = NULL, *vadc_board_dev = NULL;
+						  *vadc_usbchg_dev = NULL, *vadc_board_dev = NULL,
+						  *vusbin_vadc_dev = NULL;
 	const char *typec_psy_name;
 	struct power_supply_config usb_psy_cfg = {};
 	struct power_supply_config batt_psy_cfg = {};
@@ -9085,6 +9082,18 @@ static int smbchg_probe(struct platform_device *pdev)
 			rc = PTR_ERR(vchg_vadc_dev);
 			if (rc != -EPROBE_DEFER)
 				dev_err(&pdev->dev, "Couldn't get vadc 'vchg' rc=%d\n",
+						rc);
+			return rc;
+		}
+	}
+
+	vusbin_vadc_dev = NULL;
+	if (of_find_property(pdev->dev.of_node, "qcom,vusbin-vadc", NULL)) {
+		vusbin_vadc_dev = qpnp_get_vadc(&pdev->dev, "vusbin");
+		if (IS_ERR(vusbin_vadc_dev)) {
+			rc = PTR_ERR(vusbin_vadc_dev);
+			if (rc != -EPROBE_DEFER)
+				dev_err(&pdev->dev, "Couldn't get vadc 'vusbin' rc=%d\n",
 						rc);
 			return rc;
 		}
@@ -9228,6 +9237,7 @@ static int smbchg_probe(struct platform_device *pdev)
 	init_completion(&chip->usbin_uv_raised);
 	chip->vadc_dev = vadc_dev;
 	chip->vchg_vadc_dev = vchg_vadc_dev;
+	chip->vusbin_vadc_dev = vusbin_vadc_dev;
 	chip->pdev = pdev;
 	chip->dev = &pdev->dev;
 

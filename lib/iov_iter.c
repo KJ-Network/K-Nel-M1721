@@ -370,6 +370,7 @@ static size_t copy_page_to_iter_pipe(struct page *page, size_t offset, size_t by
 		return 0;
 	pipe->nrbufs++;
 	buf->ops = &page_cache_pipe_buf_ops;
+	buf->flags = 0;
 	get_page(buf->page = page);
 	buf->offset = offset;
 	buf->len = bytes;
@@ -394,7 +395,7 @@ int iov_iter_fault_in_readable(struct iov_iter *i, size_t bytes)
 	int err;
 	struct iovec v;
 
-	if (!(i->type & (ITER_BVEC|ITER_KVEC))) {
+	if (iter_is_iovec(i)) {
 		iterate_iovec(i, bytes, v, iov, skip, ({
 			err = fault_in_pages_readable(v.iov_base, v.iov_len);
 			if (unlikely(err))
@@ -494,6 +495,7 @@ static size_t push_pipe(struct iov_iter *i, size_t size,
 			break;
 		pipe->nrbufs++;
 		pipe->bufs[idx].ops = &default_pipe_buf_ops;
+		pipe->bufs[idx].flags = 0;
 		pipe->bufs[idx].page = page;
 		pipe->bufs[idx].offset = 0;
 		if (left <= PAGE_SIZE) {
@@ -981,10 +983,7 @@ EXPORT_SYMBOL(iov_iter_get_pages);
 
 static struct page **get_pages_array(size_t n)
 {
-	struct page **p = kmalloc(n * sizeof(struct page *), GFP_KERNEL);
-	if (!p)
-		p = vmalloc(n * sizeof(struct page *));
-	return p;
+	return kvmalloc_array(n, sizeof(struct page *), GFP_KERNEL);
 }
 
 static ssize_t pipe_get_pages_alloc(struct iov_iter *i,
