@@ -1,0 +1,161 @@
+/*
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/* GPU frequency overrides for M1721 device */
+
+&msm_gpu {
+	/* Override GPU power levels for 750 MHz max frequency */
+	/delete-node/ qcom,gpu-pwrlevels;
+
+	qcom,gpu-pwrlevels {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		compatible = "qcom,gpu-pwrlevels";
+
+		/* TURBO+ - New highest level */
+		qcom,gpu-pwrlevel@0 {
+			reg = <0>;
+			qcom,gpu-freq = <750000000>;  /* 750 MHz */
+			qcom,bus-freq = <10>;
+			qcom,bus-min = <10>;
+			qcom,bus-max = <10>;
+		};
+
+		/* TURBO - Previous highest level */
+		qcom,gpu-pwrlevel@1 {
+			reg = <1>;
+			qcom,gpu-freq = <650000000>;  /* 650 MHz */
+			qcom,bus-freq = <10>;
+			qcom,bus-min = <10>;
+			qcom,bus-max = <10>;
+		};
+
+		/* NOM+ */
+		qcom,gpu-pwrlevel@2 {
+			reg = <2>;
+			qcom,gpu-freq = <560000000>;
+			qcom,bus-freq = <10>;
+			qcom,bus-min = <8>;
+			qcom,bus-max = <10>;
+		};
+
+		/* NOM */
+		qcom,gpu-pwrlevel@3 {
+			reg = <3>;
+			qcom,gpu-freq = <510000000>;
+			qcom,bus-freq = <9>;
+			qcom,bus-min = <6>;
+			qcom,bus-max = <10>;
+		};
+
+		/* SVS+ */
+		qcom,gpu-pwrlevel@4 {
+			reg = <4>;
+			qcom,gpu-freq = <400000000>;
+			qcom,bus-freq = <7>;
+			qcom,bus-min = <5>;
+			qcom,bus-max = <8>;
+		};
+
+		/* SVS */
+		qcom,gpu-pwrlevel@5 {
+			reg = <5>;
+			qcom,gpu-freq = <320000000>;
+			qcom,bus-freq = <4>;
+			qcom,bus-min = <2>;
+			qcom,bus-max = <6>;
+		};
+
+		/* Low SVS */
+		qcom,gpu-pwrlevel@6 {
+			reg = <6>;
+			qcom,gpu-freq = <216000000>;
+			qcom,bus-freq = <1>;
+			qcom,bus-min = <1>;
+			qcom,bus-max = <4>;
+		};
+
+		/* Min SVS */
+		qcom,gpu-pwrlevel@7 {
+			reg = <7>;
+			qcom,gpu-freq = <133300000>;
+			qcom,bus-freq = <1>;
+			qcom,bus-min = <1>;
+			qcom,bus-max = <4>;
+		};
+
+		/* XO */
+		qcom,gpu-pwrlevel@8 {
+			reg = <8>;
+			qcom,gpu-freq = <19200000>;
+			qcom,bus-freq = <0>;
+			qcom,bus-min = <0>;
+			qcom,bus-max = <0>;
+		};
+	};
+
+	/* Update initial power level to use 400 MHz (SVS+) instead of 320 MHz */
+	qcom,initial-pwrlevel = <4>;
+};
+
+/* Update GPU bandwidth table for 750 MHz */
+&gpubw {
+	qcom,bw-tbl =
+		< 0    >, /*  off */
+		< 1611 >, /* 1. DDR:211.20 MHz BIMC: 105.60 MHz */
+		< 2124 >, /* 2. DDR:278.40 MHz BIMC: 139.20 MHz */
+		< 2929 >, /* 3. DDR:384.00 MHz BIMC: 192.00 MHz */
+		< 3222 >, /* 4. DDR:422.40 MHz BIMC: 211.20 MHz */
+		< 4248 >, /* 5. DDR:556.80 MHz BIMC: 278.40 MHz */
+		< 5126 >, /* 6. DDR:672.00 MHz BIMC: 336.00 MHz */
+		< 5859 >, /* 7. DDR:768.00 MHz BIMC: 384.00 MHz */
+		< 6152 >, /* 8. DDR:806.40 MHz BIMC: 403.20 MHz */
+		< 6445 >, /* 9. DDR:844.80 MHz BIMC: 422.40 MHz */
+		< 7104 >, /*10. DDR:931.20 MHz BIMC: 465.60 MHz */
+		< 7800 >; /*11. DDR:1024.00 MHz BIMC: 512.00 MHz - Added for 750 MHz */
+};
+
+/* Update MSM bus vectors for 750 MHz GPU */
+&msm_gpu {
+	qcom,msm-bus,vectors-KBps =
+		<26 512 0 0>,	     /*  off          */
+		<26 512 0 1689600>, /* 1. 211.20 MHz */
+		<26 512 0 2227200>, /* 2. 278.40 MHz */
+		<26 512 0 3072000>, /* 3. 384.00 MHz */
+		<26 512 0 3379200>, /* 4.  422.40 MHz */
+		<26 512 0 4454400>, /* 5. 556.80 MHz */
+		<26 512 0 5376000>, /* 6. 672.00 MHz */
+		<26 512 0 6144000>, /* 7. 768.00 MHz */
+		<26 512 0 6451200>, /* 8. 806.40 MHz */
+		<26 512 0 6758400>, /* 9. 844.80 MHz */
+		<26 512 0 7449600>, /*10. 931.20 MHz */
+		<26 512 0 8192000>; /*11. 1024.00 MHz - Added for 750 MHz */
+
+	/* Update bus cases count */
+	qcom,msm-bus,num-cases = <12>;
+};
+
+/* Update GPU clock configuration for 750 MHz */
+&clock_gcc_gfx {
+	qcom,gfxfreq-corner =
+		 <         0   0 >,
+		 < 133330000   1 >,  /* Min SVS   */
+		 < 216000000   2 >,  /* Low SVS   */
+		 < 320000000   3 >,  /* SVS       */
+		 < 400000000   4 >,  /* SVS Plus  */
+		 < 510000000   5 >,  /* NOM       */
+		 < 560000000   6 >,  /* Nom Plus  */
+		 < 650000000   7 >,  /* Turbo     */
+		 < 750000000   8 >;  /* Turbo+    - Added 750 MHz */
+};
