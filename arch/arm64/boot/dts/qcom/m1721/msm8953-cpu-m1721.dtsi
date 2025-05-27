@@ -1,0 +1,187 @@
+/*
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/* CPU frequency overrides for M1721 device */
+
+&CPU0 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU1 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU2 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU3 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU4 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU5 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU6 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+&CPU7 {
+	clock-frequency = <2700000000>; /* 2.7 GHz */
+};
+
+/* Update energy costs for the new frequency */
+&energy_costs {
+	CPU_COST_0: core-cost0 {
+		busy-cost-data = <
+			 652800   5
+			1036800  10
+			1401600  16
+			1689600  22
+			1804800  26
+			1958400  33
+			2016000  36
+			2700000  50  /* Added 2.7 GHz cost */
+		>;
+		idle-cost-data = <
+			4 3 2 1
+		>;
+	};
+
+	CLUSTER_COST_0: cluster-cost0 {
+		busy-cost-data = <
+			 652800   69
+			1036800   74
+			1401600   80
+			1689600  100
+			1804800  110
+			1958400  130
+			2016000  140
+			2700000  180  /* Added 2.7 GHz cost */
+		>;
+		idle-cost-data = <
+			4 3 2 1
+		>;
+	};
+
+	CLUSTER_COST_1: cluster-cost1 {
+		busy-cost-data = <
+			 652800    5
+			1036800   10
+			1401600   16
+			1689600   95
+			1804800  105
+			1958400  125
+			2016000  135
+			2700000  175  /* Added 2.7 GHz cost */
+		>;
+		idle-cost-data = <
+			4 3 2 1
+		>;
+	};
+};
+
+/* Update CPU clock configuration for 2.7 GHz */
+&clock_cpu {
+	qcom,speed0-bin-v0-cl =
+		<          0 0>,
+		<  652800000 1>,
+		< 1036800000 2>,
+		< 1401600000 3>,
+		< 1689600000 4>,
+		< 1804800000 5>,
+		< 1958400000 6>,
+		< 2016000000 7>,
+		< 2700000000 8>;  /* Added 2.7 GHz */
+	qcom,speed0-bin-v0-cci =
+		<          0 0>,
+		<  261120000 1>,
+		<  414720000 2>,
+		<  560640000 3>,
+		<  675840000 4>,
+		<  721920000 5>,
+		<  783360000 6>,
+		<  806400000 7>,
+		<  900000000 8>;  /* Added CCI freq for 2.7 GHz */
+};
+
+/* Update cpufreq table for 2.7 GHz */
+&msm_cpufreq {
+	qcom,cpufreq-table =
+		 <  652800 >,
+		 < 1036800 >,
+		 < 1401600 >,
+		 < 1689600 >,
+		 < 1804800 >,
+		 < 1958400 >,
+		 < 2016000 >,
+		 < 2150400 >,
+		 < 2208000 >,
+		 < 2700000 >;  /* Added 2.7 GHz */
+};
+
+/* Update devfreq-cpufreq mapping for 2.7 GHz */
+&cpubw_compute {
+	qcom,core-dev-table =
+		 <  652800  1611>,
+		 < 1036800  3221>,
+		 < 1401600  5859>,
+		 < 1689600  6445>,
+		 < 1804800  7104>,
+		 < 1958400  7104>,
+		 < 2208000  7104>,
+		 < 2700000  7104>;  /* Added 2.7 GHz mapping */
+};
+
+/* Update mincpubw mapping for 2.7 GHz */
+&mincpubw_compute {
+	qcom,core-dev-table =
+		<  652800 1611 >,
+		< 1401600 3221 >,
+		< 2208000 5859 >,
+		< 2700000 5859 >;  /* Added 2.7 GHz mapping */
+};
+
+/* Override devfreq-cpufreq section for 2.7 GHz support */
+&soc {
+	/delete-node/ devfreq-cpufreq;
+
+	devfreq-cpufreq {
+		cpubw-cpufreq {
+			target-dev = <&cpubw>;
+			cpu-to-dev-map =
+				 <  652800  1611>,
+				 < 1036800  3221>,
+				 < 1401600  5859>,
+				 < 1689600  6445>,
+				 < 1804800  7104>,
+				 < 1958400  7104>,
+				 < 2208000  7104>,
+				 < 2700000  7104>;  /* Added 2.7 GHz mapping */
+		};
+
+		mincpubw-cpufreq {
+			target-dev = <&mincpubw>;
+			cpu-to-dev-map =
+				<  652800 1611 >,
+				< 1401600 3221 >,
+				< 2208000 5859 >,
+				< 2700000 5859 >;  /* Added 2.7 GHz mapping */
+		};
+	};
+};
