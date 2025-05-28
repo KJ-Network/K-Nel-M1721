@@ -24,7 +24,7 @@ jobs:
         run: |
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          
+
       - name: Get Tag Name
         id: get-tag
         run: |
@@ -47,10 +47,14 @@ jobs:
       - name: Get Kernel source
         run: |
           git clone https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.get-tag.outputs.TAG_NAME }} --depth 1 $GITHUB_WORKSPACE/workdir/source
-          
+
       - name: Processing submodules
         run: |
           cd $GITHUB_WORKSPACE/workdir/source
+
+          # Fix KernelSU Kconfig issue
+          sed -i 's/source "drivers\/kernelsu\/Kconfig"/# source "drivers\/kernelsu\/Kconfig"/' drivers/Kconfig
+
           git submodule update --init --remote --rebase --recursive KernelSU
           sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KPM=y\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_MANUAL_HOOK=y\nCONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y' arch/arm64/configs/m1721_k-nel_defconfig
           git submodule update --init --remote --rebase --recursive utils/lxc-docker
@@ -81,7 +85,17 @@ jobs:
               echo "Kernel output file is empty"
               exit 1
           fi
-          
+
+          # Check if M1721 DTB is built
+          if [ -f out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb ]; then
+              echo "M1721 DTB found: msm8953-qrd-sku3-m1721.dtb"
+              ls -la out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb
+          else
+              echo "WARNING: M1721 DTB not found!"
+              echo "Available DTB files:"
+              ls -la out/arch/arm64/boot/dts/qcom/*.dtb || echo "No DTB files found"
+          fi
+
       - name: Patch SukiSU Ultra KPM
         if: env.CHECK_FILE_IS_OK == 'true'
         run: |
@@ -89,7 +103,16 @@ jobs:
           cd $GITHUB_WORKSPACE/workdir/SukiSU-Patch
           wget https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
           cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image .
-          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/dts/qcom/*.dtb .
+
+          # Copy M1721 DTB specifically if it exists, otherwise copy all DTBs
+          if [ -f $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb ]; then
+              echo "Using M1721 specific DTB"
+              cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-m1721.dtb .
+          else
+              echo "M1721 DTB not found, using all available DTBs"
+              cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/dts/qcom/*.dtb .
+          fi
+
           chmod +x patch_linux
           ./patch_linux
           mv -f oImage Image
@@ -101,7 +124,7 @@ jobs:
         run: |
           cp $GITHUB_WORKSPACE/workdir/SukiSU-Patch/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
           sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }}/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
-          
+
       - name: Upload Kernel Package
         if: env.CHECK_FILE_IS_OK == 'true'
         uses: actions/upload-artifact@v4

@@ -234,7 +234,8 @@
 				<  345600 >,
 				<  576000 >,
 				< 1094400 >,
-				< 1497600 >;
+				< 1497600 >,
+				< 2700000 >;
 	};
 
 	cpubw: qcom,cpubw {
@@ -259,7 +260,8 @@
 		qcom,core-dev-table =
 				<  153600 MHZ_TO_MBPS( 200, 4) >,
 				<  576000 MHZ_TO_MBPS( 691, 4) >,
-				< 1497600 MHZ_TO_MBPS(1383, 4)>;
+				< 1497600 MHZ_TO_MBPS(1383, 4)>,
+				< 2700000 MHZ_TO_MBPS(1383, 4)>;
 	};
 
 	clock_gcc: qcom,gcc@100000 {
@@ -276,7 +278,7 @@
 		compatible = "qcom,cpu-sdxpoorwills";
 		clocks = <&clock_rpmh RPMH_CXO_CLK_A>;
 		clock-names = "xo_ao";
-		qcom,a7cc-init-rate = <1497600000>;
+		qcom,a7cc-init-rate = <2700000000>;
 		reg = <0x17808100 0x7F10>;
 		reg-names = "apcs_pll";
 		qcom,rcg-reg-offset = <0x7F08>;
@@ -288,7 +290,8 @@
 			<  345600000 RPMH_REGULATOR_LEVEL_LOW_SVS>,
 			<  576000000 RPMH_REGULATOR_LEVEL_SVS>,
 			< 1094400000 RPMH_REGULATOR_LEVEL_NOM>,
-			< 1497600000 RPMH_REGULATOR_LEVEL_TURBO>;
+			< 1497600000 RPMH_REGULATOR_LEVEL_TURBO>,
+			< 2700000000 RPMH_REGULATOR_LEVEL_TURBO_L1>;
 		#clock-cells = <1>;
 	};
 

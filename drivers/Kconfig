@@ -212,5 +212,5 @@ source "drivers/sensors/Kconfig"
 
 source "drivers/tee/Kconfig"
 
-source "drivers/kernelsu/Kconfig"
+# source "drivers/kernelsu/Kconfig"
 endmenu
