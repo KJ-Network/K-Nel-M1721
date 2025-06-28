@@ -1,5 +1,0 @@
-menu "Utilities"
-
-source "utils/lxc-docker/Kconfig"
-
-endmenu

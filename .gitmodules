@@ -1,6 +1,3 @@
-[submodule "utils/lxc-docker"]
-	path = utils/lxc-docker
-	url = https://github.com/tomxi1997/lxc-docker-support-for-android.git
 [submodule "KernelSU"]
 	path = KernelSU
 	url = https://github.com/ShirkNeko/SukiSU-Ultra.git
