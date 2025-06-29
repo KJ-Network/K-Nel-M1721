@@ -53,6 +53,27 @@ config ZRAM_DEF_COMP
 	default "lzo" if ZRAM_DEF_COMP_LZO
 	default "lz4kd" if ZRAM_DEF_COMP_LZ4KD
 	default "842" if ZRAM_DEF_COMP_842
+	
+config ZRAM_HARDCODE_DISKSIZE
+       bool "Hardcode Zram Disksize"
+       depends on ZRAM
+       default n
+       help
+	 It can force the zram size to be set. 
+	 If it is disabled, the zram disksize will be calculated by. And if you want to set it, say Y and set ZRAM_DISKSIZE to XXXX (MB).
+	 If unsure, just say N.
+	 
+if ZRAM_HARDCODE_DISKSIZE
+
+config ZRAM_DISKSIZE
+      int "Zram Disksize"
+	  range 1 4096
+	  default 2048
+	help
+	It can force the zram size to be set. 
+	It should be set to XXXX (MB).
+	
+endif
 
 config ZRAM_WRITEBACK
        bool "Write back incompressible or idle page to backing device"
