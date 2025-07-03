@@ -50,6 +50,10 @@ static unsigned int num_devices = 1;
  */
 static size_t huge_class_size;
 
+#ifdef CONFIG_ZRAM_HARDCODE_DISKSIZE
+static int hardcode_disksize_setted;
+#endif
+
 static void zram_free_page(struct zram *zram, size_t index);
 static int zram_bvec_read(struct zram *zram, struct bio_vec *bvec,
 				u32 index, int offset, struct bio *bio);
@@ -1719,6 +1723,9 @@ static void zram_reset_device(struct zram *zram)
 	comp = zram->comp;
 	disksize = zram->disksize;
 	zram->disksize = 0;
+#ifdef CONFIG_ZRAM_HARDCODE_DISKSIZE
+	hardcode_disksize_setted = 1;
+#endif
 
 	set_capacity(zram->disk, 0);
 	part_stat_set_all(&zram->disk->part0, 0);
@@ -1740,7 +1747,11 @@ static ssize_t disksize_store(struct device *dev,
 	int err;
 
 #ifdef CONFIG_ZRAM_HARDCODE_DISKSIZE
-	disksize = (u64)CONFIG_ZRAM_DISKSIZE * SZ_1M;
+    if (!hardcode_disksize_setted || hardcode_disksize_setted == 0) {
+	    disksize = (u64)CONFIG_ZRAM_DISKSIZE * SZ_1M;
+	} else {
+	    disksize = memparse(buf, NULL);
+	}
 #else
     disksize = memparse(buf, NULL);
 #endif

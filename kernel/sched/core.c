@@ -1209,7 +1209,7 @@ uclamp_update_active_tasks(struct cgroup_subsys_state *css,
 	struct css_task_iter it;
 	struct task_struct *p;
 
-	css_task_iter_start(css, &it);
+	css_task_iter_start(css, 0, &it);
 	while ((p = css_task_iter_next(&it))) {
 		for_each_clamp_id(clamp_id) {
 			if ((0x1 << clamp_id) & clamps)
@@ -9007,7 +9007,7 @@ static void cpuset_cpu_active(void)
 		 */
 		cpuset_force_rebuild();
 	}
-	cpuset_update_active_cpus(true);
+	cpuset_update_active_cpus();
 }
 
 static int cpuset_cpu_inactive(unsigned int cpu)
@@ -9030,7 +9030,7 @@ static int cpuset_cpu_inactive(unsigned int cpu)
 
 		if (overflow)
 			return -EBUSY;
-		cpuset_update_active_cpus(false);
+		cpuset_update_active_cpus();
 	} else {
 		num_cpus_frozen++;
 		partition_sched_domains(1, NULL, NULL);
