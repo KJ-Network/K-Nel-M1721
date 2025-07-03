@@ -123,8 +123,10 @@ struct dentry *kernfs_node_dentry(struct kernfs_node *kn,
 		return dentry;
 
 	knparent = find_next_ancestor(kn, NULL);
-	if (WARN_ON(!knparent))
+	if (WARN_ON(!knparent)) {
+		dput(dentry);
 		return ERR_PTR(-EINVAL);
+	}
 
 	do {
 		struct dentry *dtmp;
