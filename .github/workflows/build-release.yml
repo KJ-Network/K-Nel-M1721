@@ -51,7 +51,7 @@ jobs:
       - name: Processing submodules
         run: |
           cd $GITHUB_WORKSPACE/workdir/source
-          git submodule update --init KernelSU
+          git submodule update --init  --remote --rebase --recursive KernelSU
           sed -i -e '$a\'$'\n''CONFIG_KSU=n' arch/arm64/configs/m1721_k-nel_defconfig
           
       - name: Build Kernel
@@ -140,7 +140,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/workdir/source
           git submodule update --init --remote --rebase --recursive KernelSU
-          sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KPM=y\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_MANUAL_HOOK=y\nCONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y' arch/arm64/configs/m1721_k-nel_defconfig
+          sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_MANUAL_HOOK=y\nCONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y' arch/arm64/configs/m1721_k-nel_defconfig
 
       - name: Build Kernel
         run: |
@@ -167,25 +167,11 @@ jobs:
               echo "Kernel output file is empty"
               exit 1
           fi
-          
-      - name: Patch SukiSU Ultra KPM
-        if: env.CHECK_FILE_IS_OK == 'true'
-        run: |
-          mkdir $GITHUB_WORKSPACE/workdir/SukiSU-Patch
-          cd $GITHUB_WORKSPACE/workdir/SukiSU-Patch
-          wget https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
-          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image .
-          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/dts/qcom/*.dtb .
-          chmod +x patch_linux
-          ./patch_linux
-          mv -f oImage Image
-          gzip -k Image Image.gz
-          cat Image.gz *.dtb > Image.gz-dtb
 
       - name: Pack Kernel
         if: env.CHECK_FILE_IS_OK == 'true'
         run: |
-          cp $GITHUB_WORKSPACE/workdir/SukiSU-Patch/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
+          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
           sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With SukiSU Ultra, KPM, SUSFS/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
           
       - name: Upload Kernel Package
