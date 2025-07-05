@@ -1,4 +1,4 @@
 [submodule "KernelSU"]
 	path = KernelSU
-	url = https://github.com/ShirkNeko/SukiSU-Ultra.git
+	url = https://github.com/rsuntk/KernelSU.git
 	branch = susfs-main
