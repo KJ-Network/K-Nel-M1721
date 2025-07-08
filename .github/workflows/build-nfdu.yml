@@ -1,12 +1,11 @@
-name: Build K-Nel M1721
+name: Build K-Nel M1721 (NFDU)
 on:
   push:
-    tags:
-      - "C-*"
+    branches: [ "lineage-18.1-nfdu" ]
 
 jobs:
   build:
-    name: Build K-Nel M1721 by ${{ github.actor }}
+    name: Build K-Nel M1721 (NFDU) by ${{ github.actor }}
     runs-on: ubuntu-24.04
     steps:
 
@@ -24,11 +23,6 @@ jobs:
         run: |
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          
-      - name: Get Tag Name
-        id: get-tag
-        run: |
-          echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
 
       - name: Initialize compilation environment
         run: |
@@ -46,7 +40,7 @@ jobs:
 
       - name: Get Kernel source
         run: |
-          git clone https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.get-tag.outputs.TAG_NAME }} --depth 1 $GITHUB_WORKSPACE/workdir/source
+          git clone https://github.com/$GITHUB_REPOSITORY/ -b lineage-18.1-nfdu --depth 1 $GITHUB_WORKSPACE/workdir/source
           
       - name: Processing submodules
         run: |
@@ -56,7 +50,7 @@ jobs:
 
       - name: Build Kernel
         run: |
-          export LOCALVERSION=${{ steps.get-tag.outputs.TAG_NAME }}
+          export LOCALVERSION=${{ env.BUILD_TIME }}
           export KBUILD_BUILD_HOST=Github-Action
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
           export ARCH="arm64"
@@ -70,25 +64,13 @@ jobs:
           make O=out m1721_k-nel_defconfig
           make -j$(nproc --all) O=out
 
-      - name: Check a kernel output files
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
-          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
-              echo "CHECK_FILE_IS_OK=true" >> $GITHUB_ENV
-          else
-              echo "Kernel output file is empty"
-              exit 1
-          fi
-
       - name: Pack Kernel
-        if: env.CHECK_FILE_IS_OK == 'true'
         run: |
           cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }}/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
+          sed -i "/description/ s/$/ Just installed K-Nel M1721 version: NFDU_${{ env.BUILD_TIME }}/"  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
           
       - name: Upload Kernel Package
-        if: env.CHECK_FILE_IS_OK == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM_${{ env.BUILD_TIME }}
+          name: K-Nel_M1721_NFDU_${{ env.BUILD_TIME }}_AK3&APM
           path: workdir/source/android/Packer/*
