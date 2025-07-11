@@ -34,12 +34,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5-dev libsdl1.2-dev rsync adb fastboot libstdc++6 -y
-          mkdir -p $GITHUB_WORKSPACE/workdir
-          cd $GITHUB_WORKSPACE/workdir
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
 
       - name: Get Toolchain
         run: |
+          mkdir -p $GITHUB_WORKSPACE/workdir
           git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
@@ -70,24 +69,12 @@ jobs:
           make O=out m1721_k-nel_defconfig
           make -j$(nproc --all) O=out
 
-      - name: Check a kernel output files
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
-          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
-              echo "CHECK_FILE_IS_OK=true" >> $GITHUB_ENV
-          else
-              echo "Kernel output file is empty"
-              exit 1
-          fi
-
       - name: Pack Kernel
-        if: env.CHECK_FILE_IS_OK == 'true'
         run: |
           cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
           sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} (NON-KSU)/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
           
       - name: Upload Kernel Package
-        if: env.CHECK_FILE_IS_OK == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM
@@ -122,12 +109,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5-dev libsdl1.2-dev rsync adb fastboot libstdc++6 -y
-          mkdir -p $GITHUB_WORKSPACE/workdir
-          cd $GITHUB_WORKSPACE/workdir
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
 
       - name: Get Toolchain
         run: |
+          mkdir -p $GITHUB_WORKSPACE/workdir
           git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
           git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
@@ -158,24 +144,12 @@ jobs:
           make O=out m1721_k-nel_defconfig
           make -j$(nproc --all) O=out
 
-      - name: Check a kernel output files
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
-          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
-              echo "CHECK_FILE_IS_OK=true" >> $GITHUB_ENV
-          else
-              echo "Kernel output file is empty"
-              exit 1
-          fi
-
       - name: Pack Kernel
-        if: env.CHECK_FILE_IS_OK == 'true'
         run: |
           cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
           sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With SukiSU Ultra, KPM, SUSFS/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
           
       - name: Upload Kernel Package
-        if: env.CHECK_FILE_IS_OK == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM
