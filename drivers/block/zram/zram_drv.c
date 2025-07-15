@@ -1,4 +1,4 @@
-/*
+    /*
  * Compressed RAM block device
  *
  * Copyright (C) 2008, 2009, 2010  Nitin Gupta
@@ -43,7 +43,7 @@ static int zram_major;
 static const char *default_compressor = CONFIG_ZRAM_DEF_COMP;
 
 /* Module params (documentation at end) */
-static unsigned int num_devices = 1;
+static unsigned int num_devices = 2;
 /*
  * Pages that compress to sizes equals or greater than this are stored
  * uncompressed in memory.
