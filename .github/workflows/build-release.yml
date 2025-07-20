@@ -10,17 +10,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
 
-      - name: Set Beijing timezone
+      - name: Set Beijing Timezone
         uses: szenius/set-timezone@v1.2
         with:
           timezoneLinux: "Asia/Shanghai"
 
-      - name: Set SWAP to 5GiB
+      - name: Set SWAP To 5GiB
         uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 5
 
-      - name: Clean useless files
+      - name: Clean Useless Files
         run: |
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
@@ -30,26 +30,25 @@ jobs:
         run: |
           echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
 
-      - name: Initialize compilation environment
+      - name: Initialize Compilation Environment
         run: |
           sudo apt-get update
-          sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5-dev libsdl1.2-dev rsync adb fastboot libstdc++6 -y
+          sudo apt-get install git automake build-essential bc python3 -y
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.get-tag.outputs.TAG_NAME }}
 
       - name: Get Toolchain
         run: |
-          mkdir -p $GITHUB_WORKSPACE/workdir
-          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
-          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
-          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
-
-      - name: Get Kernel source
-        run: |
-          git clone https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.get-tag.outputs.TAG_NAME }} --depth 1 $GITHUB_WORKSPACE/workdir/source
+          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/toolchain/clang
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.git --depth 1 $GITHUB_WORKSPACE/toolchain/gcc32
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.git --depth 1 $GITHUB_WORKSPACE/toolchain/gcc64
           
-      - name: Processing submodules
+      - name: Processing Submodules
         run: |
-          cd $GITHUB_WORKSPACE/workdir/source
           git submodule update --init  --remote --rebase --recursive KernelSU
           sed -i -e '$a\'$'\n''CONFIG_KSU=n' arch/arm64/configs/m1721_k-nel_defconfig
           
@@ -60,42 +59,41 @@ jobs:
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
           export ARCH="arm64"
           export SUBARCH="arm64"
-          export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export PATH="$GITHUB_WORKSPACE/toolchain/clang/bin:$GITHUB_WORKSPACE/toolchain/gcc32/bin:$GITHUB_WORKSPACE/toolchain/gcc64/bin:$PATH"
           export CC="clang"
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
-          cd $GITHUB_WORKSPACE/workdir/source
           make O=out m1721_k-nel_defconfig
           make -j$(nproc --all) O=out
 
       - name: Pack Kernel
         run: |
-          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} (NON-KSU)/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
+          cp out/arch/arm64/boot/Image.gz-dtb android/Packer/
+          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} (NON-KSU)/'  android/Packer/module.prop
           
       - name: Upload Kernel Package
         uses: actions/upload-artifact@v4
         with:
           name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM
-          path: workdir/source/android/Packer/*
+          path: android/Packer/*
           
   build-ksu:
     name: Build K-Nel M1721 (Release) by ${{ github.actor }}
     runs-on: ubuntu-24.04
     steps:
 
-      - name: Set Beijing timezone
+      - name: Set Beijing Timezone
         uses: szenius/set-timezone@v1.2
         with:
           timezoneLinux: "Asia/Shanghai"
 
-      - name: Set SWAP to 5GiB
+      - name: Set SWAP To 5GiB
         uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 5
 
-      - name: Clean useless files
+      - name: Clean Useless Files
         run: |
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
@@ -105,26 +103,25 @@ jobs:
         run: |
           echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
 
-      - name: Initialize compilation environment
+      - name: Initialize Compilation Environment
         run: |
           sudo apt-get update
-          sudo apt-get install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5-dev libsdl1.2-dev rsync adb fastboot libstdc++6 -y
+          sudo apt-get install git automake build-essential bc python3 -y
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.get-tag.outputs.TAG_NAME }}
 
       - name: Get Toolchain
         run: |
-          mkdir -p $GITHUB_WORKSPACE/workdir
-          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
-          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
-          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
+          git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/toolchain/clang
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.git --depth 1 $GITHUB_WORKSPACE/toolchain/gcc32
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.git --depth 1 $GITHUB_WORKSPACE/toolchain/gcc64
 
-      - name: Get Kernel source
+      - name: Processing Submodules
         run: |
-          git clone https://github.com/$GITHUB_REPOSITORY/ -b ${{ steps.get-tag.outputs.TAG_NAME }} --depth 1 $GITHUB_WORKSPACE/workdir/source
-
-      - name: Processing submodules
-        run: |
-          cd $GITHUB_WORKSPACE/workdir/source
           git submodule update --init --remote --rebase --recursive KernelSU
           sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_MANUAL_HOOK=y\nCONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y' arch/arm64/configs/m1721_k-nel_defconfig
 
@@ -135,25 +132,24 @@ jobs:
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
           export ARCH="arm64"
           export SUBARCH="arm64"
-          export PATH="$GITHUB_WORKSPACE/workdir/toolchain/clang/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc32/bin:$GITHUB_WORKSPACE/workdir/toolchain/gcc64/bin:$PATH"
+          export PATH="$GITHUB_WORKSPACE/toolchain/clang/bin:$GITHUB_WORKSPACE/toolchain/gcc32/bin:$GITHUB_WORKSPACE/toolchain/gcc64/bin:$PATH"
           export CC="clang"
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
-          cd $GITHUB_WORKSPACE/workdir/source
           make O=out m1721_k-nel_defconfig
           make -j$(nproc --all) O=out
 
       - name: Pack Kernel
         run: |
-          cp $GITHUB_WORKSPACE/workdir/source/out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/workdir/source/android/Packer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With SukiSU Ultra, KPM, SUSFS/'  $GITHUB_WORKSPACE/workdir/source/android/Packer/module.prop
+          cp out/arch/arm64/boot/Image.gz-dtb android/Packer/
+          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With RKSU, SUSFS/' android/Packer/module.prop
           
       - name: Upload Kernel Package
         uses: actions/upload-artifact@v4
         with:
           name: K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM
-          path: workdir/source/android/Packer/*
+          path: android/Packer/*
           
   Release: 
     needs:
