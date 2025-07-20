@@ -40,8 +40,8 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/workdir
           git clone https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git --depth 1 $GITHUB_WORKSPACE/workdir/toolchain/clang
-          git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
-          git clone https://github.com/KJ-Network/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc32
+          git clone https://github.com/KJ-Network/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.git --depth=1 $GITHUB_WORKSPACE/workdir/toolchain/gcc64
 
       - name: Get Kernel source
         run: |
