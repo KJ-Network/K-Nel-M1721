@@ -10,6 +10,7 @@
 #define CMD_SUSFS_ADD_SUS_PATH 0x55550
 #define CMD_SUSFS_SET_ANDROID_DATA_ROOT_PATH 0x55551
 #define CMD_SUSFS_SET_SDCARD_ROOT_PATH 0x55552
+#define CMD_SUSFS_ADD_SUS_PATH_LOOP 0x55553
 #define CMD_SUSFS_ADD_SUS_MOUNT 0x55560
 #define CMD_SUSFS_UMOUNT_FOR_ZYGOTE_ISO_SERVICE 0x55562
 #define CMD_SUSFS_HIDE_SUS_MNTS_FOR_ALL_PROCS 0x55561
@@ -47,7 +48,6 @@
 
 // thread_info->flags is unsigned long :D
 #define TIF_NON_ROOT_USER_APP_PROC 33
-#define TIF_PROC_SU_NOT_ALLOWED 34
 
 #define AS_FLAGS_SUS_PATH 24
 #define AS_FLAGS_SUS_MOUNT 25
@@ -79,6 +79,14 @@ static inline bool susfs_is_current_non_root_user_app_proc(void) {
 
 static inline void susfs_set_current_non_root_user_app_proc(void) {
 	set_ti_thread_flag(&current->thread_info, TIF_NON_ROOT_USER_APP_PROC);
+}
+
+static inline bool susfs_starts_with(const char *str, const char *prefix) {
+    while (*prefix) {
+        if (*str++ != *prefix++)
+            return false;
+    }
+    return true;
 }
 
 #endif // #ifndef KSU_SUSFS_DEF_H
