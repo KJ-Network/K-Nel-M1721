@@ -53,6 +53,15 @@ config ANDROID_BINDER_IPC_SELFTEST
 	  Binder selftest checks the allocation and free of binder buffers
 	  exhaustively with combinations of various buffer sizes and
 	  alignments.
+	  
+config REKERNEL
+    bool "Re:kernel"
+	depends on ANDROID_BINDER_IPC
+	default n
+	---help---
+	  This feature make android tombstone users get a better experience.
+	  
+	  If you are not a  android tombstone user, or your tombstone module won't support Re:kernel, Just say N.
 
 config ANDROID_SIMPLE_LMK
 	bool "Simple Android Low Memory Killer"

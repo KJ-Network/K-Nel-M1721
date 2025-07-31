@@ -13,7 +13,9 @@
 #include <linux/slab.h>
 #include <linux/export.h>
 #include <linux/init.h>
+#ifdef REKERNEL
 #include <linux/rekernel.h>
+#endif
 #include <linux/sched.h>
 #include <linux/file.h>
 #include <linux/fs.h>
@@ -1204,6 +1206,7 @@ specific_send_sig_info(int sig, struct siginfo *info, struct task_struct *t)
 	return send_signal(sig, info, t, 0);
 }
 
+#ifdef REKERNEL
 static inline bool line_is_frozen(struct task_struct *task)
 {
 	return frozen(task) || freezing(task);
@@ -1249,11 +1252,13 @@ static int start_rekernel_server(void) {
   }
   return 0;
 }
+#endif
 int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 			bool group)
 {
 	unsigned long flags;
 	int ret = -ESRCH;
+#ifdef REKERNEL
 	if (start_rekernel_server() == 0) {
  		if (line_is_frozen(p) && (sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT)) {
      		char binder_kmsg[REKERNEL_PACKET_SIZE];
@@ -1261,6 +1266,7 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
      		send_netlink_message(binder_kmsg, strlen(binder_kmsg));
  		}
  	}
+#endif
 
 	if (lock_task_sighand(p, &flags)) {
 		ret = send_signal(sig, info, p, group);

@@ -70,7 +70,10 @@
 #include <linux/pid_namespace.h>
 #include <linux/security.h>
 #include <linux/spinlock.h>
+#ifdef REKERNEL
 #include <linux/rekernel.h>
+#endif
+
 #include "binder_alloc.h"
 #include "binder_trace.h"
 
@@ -2986,6 +2989,7 @@ static struct binder_node *binder_get_node_refs_for_txn(
 	return target_node;
 }
 
+#ifdef REKERNEL
 static inline bool line_is_frozen(struct task_struct *task)
 {
 	return frozen(task) || freezing(task);
@@ -3031,6 +3035,7 @@ static int start_rekernel_server(void) {
   }
   return 0;
 }
+#endif
 static void binder_transaction(struct binder_proc *proc,
 			       struct binder_thread *thread,
 			       struct binder_transaction_data *tr, int reply,
@@ -3121,6 +3126,7 @@ static void binder_transaction(struct binder_proc *proc,
 		target_proc = target_thread->proc;
 		atomic_inc(&target_proc->tmp_ref);
 		binder_inner_proc_unlock(target_thread->proc);
+#ifdef REKERNEL
 		if (start_rekernel_server() == 0) {
 			if (target_proc
             	&& (NULL != target_proc->tsk)
@@ -3133,6 +3139,7 @@ static void binder_transaction(struct binder_proc *proc,
          			send_netlink_message(binder_kmsg, strlen(binder_kmsg));
    			}
 		}
+#endif
 	} else {
 		if (tr->target.handle) {
 			struct binder_ref *ref;
@@ -3185,6 +3192,7 @@ static void binder_transaction(struct binder_proc *proc,
 			goto err_dead_binder;
 		}
 		e->to_node = target_node->debug_id;
+#ifdef REKERNEL
 		if (start_rekernel_server() == 0) {
 			if (target_proc
             	&& (NULL != target_proc->tsk)
@@ -3197,6 +3205,7 @@ static void binder_transaction(struct binder_proc *proc,
          			send_netlink_message(binder_kmsg, strlen(binder_kmsg));
    			}
 		}
+#endif
 		if (WARN_ON(proc == target_proc)) {
 			return_error = BR_FAILED_REPLY;
 			return_error_param = -EINVAL;
