@@ -49,6 +49,7 @@ jobs:
           
       - name: Processing Submodules
         run: |
+          git submodule update --init --remote --rebase --recursive android/Installer
           git submodule update --init --remote --rebase --recursive KernelSU
           sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KSU_SUSFS=y\nCONFIG_KSU_MANUAL_HOOK=y\nCONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_PATH=y\nCONFIG_KSU_SUSFS_SUS_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SUS_KSTAT=y\nCONFIG_KSU_SUSFS_TRY_UMOUNT=y\nCONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y\nCONFIG_KSU_SUSFS_SPOOF_UNAME=y\nCONFIG_KSU_SUSFS_ENABLE_LOG=y\nCONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y\nCONFIG_KSU_SUSFS_OPEN_REDIRECT=y' arch/arm64/configs/m1721_k-nel_defconfig
 
@@ -69,11 +70,12 @@ jobs:
 
       - name: Pack Kernel
         run: |
-          cp out/arch/arm64/boot/Image.gz-dtb android/Packer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }}/' android/Packer/module.prop
+          cp out/arch/arm64/boot/Image android/Installer/
+          cp out/arch/arm64/boot/dts/qcom/*.dtb android/Installer/
+          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }}/' android/Installer/module.prop
           
       - name: Upload Kernel Package
         uses: actions/upload-artifact@v4
         with:
-          name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_AK3&APM_${{ env.BUILD_TIME }}
-          path: android/Packer/*
+          name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer_${{ env.BUILD_TIME }}
+          path: android/Installer/*
