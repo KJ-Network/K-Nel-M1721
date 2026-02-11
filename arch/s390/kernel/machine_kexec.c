@@ -25,6 +25,7 @@
 #include <asm/elf.h>
 #include <asm/asm-offsets.h>
 #include <asm/cacheflush.h>
+#include <linux/set_memory.h>
 #include <asm/os_info.h>
 #include <asm/switch_to.h>
 
