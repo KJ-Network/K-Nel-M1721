@@ -118,3 +118,11 @@ all.config
 
 # fetched Android config fragments
 kernel/configs/android-*.cfg
+
+# backups
+*.bak
+
+# patches
+*.patch
+*.orig
+*.rej
