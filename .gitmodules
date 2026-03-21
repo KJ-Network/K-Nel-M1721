@@ -1,6 +1,6 @@
 [submodule "android/Installer"]
 	path = android/Installer
-	url = https://github.com/KJ-Network/K-Nel-Installer.git
+	url = https://github.com/KopsourcesORG/KosminorKernelInstaller.git
 	branch = m1721
 [submodule "KernelSU"]
 	path = KernelSU

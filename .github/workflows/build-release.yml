@@ -1,4 +1,4 @@
-name: Build K-Nel M1721 (Release)
+name: Build KosminorKernel M1721 (Release)
 on:
   push:
     tags:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-vanilla:
-    name: Build K-Nel M1721 (Release) by ${{ github.actor }}
+    name: Build KosminorKernel M1721 (Release) by ${{ github.actor }}
     runs-on: ubuntu-24.04
     steps:
 
@@ -51,7 +51,7 @@ jobs:
         run: |
           git submodule update --init --remote --rebase --recursive android/Installer
           git submodule update --init  --remote --rebase --recursive KernelSU
-          sed -i -e '$a\'$'\n''CONFIG_KSU=n' arch/arm64/configs/m1721_k-nel_defconfig
+          sed -i -e '$a\'$'\n''CONFIG_KSU=n' arch/arm64/configs/m1721_kosminor_defconfig
           
       - name: Build Kernel
         run: |
@@ -65,23 +65,23 @@ jobs:
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
-          make O=out m1721_k-nel_defconfig
+          make O=out m1721_kosminor_defconfig
           make -j$(nproc --all) O=out
 
       - name: Pack Kernel
         run: |
           cp out/arch/arm64/boot/Image android/Installer/
           cp out/arch/arm64/boot/dts/qcom/*.dtb android/Installer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} (NON-KSU)/'  android/Installer/module.prop
+          sed -i '/description/ s/$/ Just installed KosminorKernel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} (NON-KSU)/'  android/Installer/module.prop
           
       - name: Upload Kernel Package
         uses: actions/upload-artifact@v4
         with:
-          name: K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer
+          name: KosminorKernel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer
           path: android/Installer/*
           
   build-ksu:
-    name: Build K-Nel M1721 (Release) by ${{ github.actor }}
+    name: Build KosminorKernel M1721 (Release) by ${{ github.actor }}
     runs-on: ubuntu-24.04
     steps:
 
@@ -131,7 +131,7 @@ jobs:
           LATEST_TAG=$(git tag -l | sort -V | tail -n1)
           git checkout $LATEST_TAG
           cd ..
-          sed -i -e '$a\'$'\n''CONFIG_KSU=y' arch/arm64/configs/m1721_k-nel_defconfig
+          sed -i -e '$a\'$'\n''CONFIG_KSU=y' arch/arm64/configs/m1721_kosminor_defconfig
 
       - name: Build Kernel
         run: |
@@ -145,19 +145,19 @@ jobs:
           export CROSS_COMPILE="aarch64-linux-gnu-"
           export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
           export TRIPLE="aarch64-linux-gnu-"
-          make O=out m1721_k-nel_defconfig
+          make O=out m1721_kosminor_defconfig
           make -j$(nproc --all) O=out
 
       - name: Pack Kernel
         run: |
           cp out/arch/arm64/boot/Image android/Installer/
           cp out/arch/arm64/boot/dts/qcom/*.dtb android/Installer/
-          sed -i '/description/ s/$/ Just installed K-Nel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With RKSU, SUSFS/' android/Installer/module.prop
+          sed -i '/description/ s/$/ Just installed KosminorKernel M1721 version: ${{ steps.get-tag.outputs.TAG_NAME }} With RKSU, SUSFS/' android/Installer/module.prop
           
       - name: Upload Kernel Package
         uses: actions/upload-artifact@v4
         with:
-          name: K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer
+          name: KosminorKernel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer
           path: android/Installer/*
           
   Release: 
@@ -177,17 +177,17 @@ jobs:
         
       - name: Pack artifacts
         run: |
-          cd "$GITHUB_WORKSPACE/K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer"
-          zip -r "K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" *
-          mv "K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" ../
-          cd "$GITHUB_WORKSPACE/K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer"
-          zip -r "K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" *
-          mv "K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" ../
+          cd "$GITHUB_WORKSPACE/KosminorKernel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer"
+          zip -r "KosminorKernel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" *
+          mv "KosminorKernel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" ../
+          cd "$GITHUB_WORKSPACE/KosminorKernel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer"
+          zip -r "KosminorKernel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" *
+          mv "KosminorKernel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip" ../
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.TOKEN }}
           files: |
-            ${{github.workspace}}/K-Nel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip
-            ${{github.workspace}}/K-Nel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip
+            ${{github.workspace}}/KosminorKernel_M1721_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip
+            ${{github.workspace}}/KosminorKernel_M1721_KSU_${{ steps.get-tag.outputs.TAG_NAME }}_Installer.zip
