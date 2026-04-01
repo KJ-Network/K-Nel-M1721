@@ -297,6 +297,9 @@ static void cam_smmu_check_vaddr_in_range(int idx, void *vaddr)
 	struct cam_dma_buff_info *mapping;
 	unsigned long start_addr, end_addr, current_addr;
 
+	if (unlikely(!vaddr))
+		return;
+
 	current_addr = (unsigned long)vaddr;
 	list_for_each_entry(mapping,
 			&iommu_cb_set.cb_info[idx].smmu_buf_list, list) {
@@ -315,7 +318,7 @@ static void cam_smmu_check_vaddr_in_range(int idx, void *vaddr)
 				mapping->ion_fd);
 		}
 	}
-	pr_err("Cannot find vaddr:%pK in SMMU. %s uses invalid virtual address\n",
+	pr_err_ratelimited("Cannot find vaddr:%pK in SMMU. %s uses invalid virtual address\n",
 		vaddr, iommu_cb_set.cb_info[idx].name);
 	return;
 }
