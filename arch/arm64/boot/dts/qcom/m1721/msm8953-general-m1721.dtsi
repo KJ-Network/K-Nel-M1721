@@ -21,28 +21,6 @@
 
 };
 
-&firmware {
-	android {
-		/delete-node/ vbmeta;
-
-		fstab {
-			vendor {
-				dev = "/dev/block/platform/soc/7824900.sdhci/by-name/custom";
-				fsmgr_flags = "wait";
-			};
-
-			system {
-				compatible = "android,system";
-				dev = "/dev/block/platform/soc/7824900.sdhci/by-name/system";
-				type = "ext4";
-				mnt_flags = "ro,barrier=1,discard";
-				fsmgr_flags = "wait";
-				status = "okay";
-			};
-		};
-	};
-};
-
 &spmi_bus {
 	qcom,pm8953@0 {
 		qcom,power-on@800 {
