@@ -1661,12 +1661,10 @@ static void add_usage_links(struct module *mod)
 {
 #ifdef CONFIG_MODULE_UNLOAD
 	struct module_use *use;
-	int nowarn;
-
 	mutex_lock(&module_mutex);
 	list_for_each_entry(use, &mod->target_list, target_list) {
-		nowarn = sysfs_create_link(use->target->holders_dir,
-					   &mod->mkobj.kobj, mod->name);
+		sysfs_create_link(use->target->holders_dir,
+				  &mod->mkobj.kobj, mod->name);
 	}
 	mutex_unlock(&module_mutex);
 #endif
