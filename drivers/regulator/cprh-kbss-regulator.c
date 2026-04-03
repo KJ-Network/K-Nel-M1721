@@ -2168,7 +2168,6 @@ static int cprh_kbss_init_thread(struct cpr3_thread *thread)
  */
 static int cprh_kbss_init_regulator(struct cpr3_regulator *vreg)
 {
-	struct cprh_kbss_fuses *fuse;
 	int rc;
 
 	rc = cprh_kbss_read_fuse_data(vreg);
@@ -2176,8 +2175,6 @@ static int cprh_kbss_init_regulator(struct cpr3_regulator *vreg)
 		cpr3_err(vreg, "unable to read CPR fuse data, rc=%d\n", rc);
 		return rc;
 	}
-
-	fuse = vreg->platform_fuses;
 
 	rc = cprh_kbss_parse_corner_data(vreg);
 	if (rc) {

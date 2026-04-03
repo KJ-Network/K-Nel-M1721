@@ -995,7 +995,7 @@ static int get_prop_batt_status(struct smbchg_chip *chip)
 	u8 reg = 0, chg_type;
 	bool charger_present, chg_inhibit;
 
-	charger_present = is_usb_present(chip) | is_dc_present(chip) |
+	charger_present = is_usb_present(chip) || is_dc_present(chip) ||
 			  chip->hvdcp_3_det_ignore_uv;
 	if (!charger_present)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
@@ -4996,7 +4996,6 @@ static bool is_usbin_uv_high(struct smbchg_chip *chip)
 static void handle_usb_insertion(struct smbchg_chip *chip)
 {
 	enum power_supply_type usb_supply_type;
-	int rc;
 	char *usb_type_name = "null";
 
 	pr_smb(PR_STATUS, "triggered\n");
@@ -5045,7 +5044,7 @@ static void handle_usb_insertion(struct smbchg_chip *chip)
 
 	if (chip->parallel.avail && chip->aicl_done_irq
 			&& !chip->enable_aicl_wake) {
-		rc = enable_irq_wake(chip->aicl_done_irq);
+		enable_irq_wake(chip->aicl_done_irq);
 		chip->enable_aicl_wake = true;
 	}
 
@@ -8717,7 +8716,7 @@ static int smbchg_request_irqs(struct smbchg_chip *chip)
 			enable_irq_wake(chip->usbin_ov_irq);
 			enable_irq_wake(chip->src_detect_irq);
 			if (chip->parallel.avail && chip->usb_present) {
-				rc = enable_irq_wake(chip->aicl_done_irq);
+				enable_irq_wake(chip->aicl_done_irq);
 				chip->enable_aicl_wake = true;
 			}
 			break;

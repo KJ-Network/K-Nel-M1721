@@ -2384,10 +2384,7 @@ static struct platform_driver qpnp_regulator_driver = {
  */
 static void qpnp_regulator_set_point_init(void)
 {
-	struct qpnp_voltage_set_points **set_points;
 	int i, j, temp;
-
-	set_points = all_set_points;
 
 	for (i = 0; i < ARRAY_SIZE(all_set_points); i++) {
 		temp = 0;

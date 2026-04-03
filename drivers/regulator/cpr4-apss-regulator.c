@@ -1561,7 +1561,6 @@ static int cpr4_parse_fuse_combo_map(struct cpr3_regulator *vreg)
  */
 static int cpr4_apss_init_regulator(struct cpr3_regulator *vreg)
 {
-	struct cpr4_apss_fuses *fuse;
 	int rc;
 
 	rc = cpr4_apss_read_fuse_data(vreg);
@@ -1569,8 +1568,6 @@ static int cpr4_apss_init_regulator(struct cpr3_regulator *vreg)
 		cpr3_err(vreg, "unable to read CPR fuse data, rc=%d\n", rc);
 		return rc;
 	}
-
-	fuse = vreg->platform_fuses;
 
 	rc = cpr4_parse_fuse_combo_map(vreg);
 	if (rc) {

@@ -1934,7 +1934,6 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 				    struct mmc_async_req *areq, int *error)
 {
 	int err = 0;
-	int start_err = 0;
 	struct mmc_async_req *data = host->areq;
 
 	/* Prepare a new request */
@@ -1980,7 +1979,7 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 		} else
 			areq->mrq->lat_hist_enabled = 0;
 #endif
-		start_err = __mmc_start_data_req(host, areq->mrq);
+		__mmc_start_data_req(host, areq->mrq);
 	}
 
 	if (host->areq)
@@ -3788,11 +3787,7 @@ static int mmc_cmdq_do_erase(struct mmc_cmdq_req *cmdq_req,
 	struct mmc_command *cmd = cmdq_req->mrq.cmd;
 	unsigned int qty = 0;
 	unsigned long timeout;
-	unsigned int fr, nr;
 	int err;
-
-	fr = from;
-	nr = to - from + 1;
 
 	qty = mmc_get_erase_qty(card, from, to);
 
@@ -3852,11 +3847,7 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 	unsigned int qty = 0, busy_timeout = 0;
 	bool use_r1b_resp = false;
 	unsigned long timeout;
-	unsigned int fr, nr;
 	int err;
-
-	fr = from;
-	nr = to - from + 1;
 
 	qty = mmc_get_erase_qty(card, from, to);
 

@@ -3581,7 +3581,6 @@ static struct platform_device *msm_otg_add_pdev(
 	int retval;
 	struct ci13xxx_platform_data ci_pdata;
 	struct msm_otg_platform_data *otg_pdata;
-	struct msm_otg *motg;
 
 	pdev = platform_device_alloc(name, -1);
 	if (!pdev) {
@@ -3603,7 +3602,6 @@ static struct platform_device *msm_otg_add_pdev(
 		otg_pdata =
 			(struct msm_otg_platform_data *)
 				ofdev->dev.platform_data;
-		motg = platform_get_drvdata(ofdev);
 		ci_pdata.log2_itc = otg_pdata->log2_itc;
 		ci_pdata.usb_core_id = 0;
 		ci_pdata.l1_supported = otg_pdata->l1_supported;
