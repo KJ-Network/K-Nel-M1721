@@ -134,6 +134,34 @@ static DEVICE_ATTR(fts_glove_mode, 0644,
 #endif
 
 #if FTS_COVER_EN
+/************************************************************************
+ * Name: fts_enter_cover_mode
+ * Brief:  change cover mode
+ * Input:  cover mode
+ * Output: no
+ * Return: success >=0, otherwise failed
+ ***********************************************************************/
+int fts_enter_cover_mode(struct i2c_client *client, int mode)
+{
+	int ret = 0;
+	static u8 buf_addr[2] = { 0 };
+	static u8 buf_value[2] = { 0 };
+
+	buf_addr[0] = FTS_REG_COVER_MODE_EN; /* cover control */
+
+	if (mode)
+		buf_value[0] = 0x01;
+	else
+		buf_value[0] = 0x00;
+
+	ret = fts_i2c_write_reg(client, buf_addr[0], buf_value[0]);
+	if (ret < 0)
+		FTS_ERROR("[Mode] fts_enter_cover_mode write value fail\n");
+
+	return ret;
+
+}
+
 static ssize_t fts_touch_cover_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -165,34 +193,6 @@ static ssize_t fts_touch_cover_store(struct device *dev,
 	FTS_INFO("[Mode]cover mode status:  %d",
 			g_fts_mode_flag.fts_cover_mode_flag);
 	return count;
-}
-
-/************************************************************************
- * Name: fts_enter_cover_mode
- * Brief:  change cover mode
- * Input:  cover mode
- * Output: no
- * Return: success >=0, otherwise failed
- ***********************************************************************/
-int  fts_enter_cover_mode(struct i2c_client *client, int mode)
-{
-	int ret = 0;
-	static u8 buf_addr[2] = { 0 };
-	static u8 buf_value[2] = { 0 };
-
-	buf_addr[0] = FTS_REG_COVER_MODE_EN; /* cover control */
-
-	if (mode)
-		buf_value[0] = 0x01;
-	else
-		buf_value[0] = 0x00;
-
-	ret = fts_i2c_write_reg(client, buf_addr[0], buf_value[0]);
-	if (ret < 0)
-		FTS_ERROR("[Mode] fts_enter_cover_mode write value fail\n");
-
-	return ret;
-
 }
 
 /* read and write cover mode
