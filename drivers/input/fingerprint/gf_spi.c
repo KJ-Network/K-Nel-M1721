@@ -670,7 +670,6 @@ static int gf_probe(struct spi_device *spi)
 	irq_set_irq_wake(gf_dev->irq, 1);
 	gf.irq_enabled = 0;
     disable_irq_wake(gf_dev->irq);
-	disable_irq(gf_dev->irq);
 
 	gf_info("gf_spi ver. %d.%d.%d-%s, %s\n", VER_MAJOR, VER_MINOR, VER_EXTRA, VER_TYPE, VER_DESC);
 	return status;
