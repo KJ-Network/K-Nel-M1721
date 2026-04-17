@@ -4,5 +4,5 @@
 	branch = m1721
 [submodule "KernelSU"]
 	path = KernelSU
-	url = https://github.com/rsuntk/KernelSU.git
-	branch = main
+	url = https://github.com/backslashxx/KernelSU.git
+	branch = master
