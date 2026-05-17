@@ -7760,7 +7760,7 @@ int smbchg_get_vchar_usbin(void) {
 	rc = qpnp_vadc_read(g_tmp_chip->vchg_vadc_dev, 
 						g_tmp_chip->vusbin_adc_channel, &adc_result);
 	if (rc) {
-		pr_err(
+		pr_debug(
 				"error in VUSBIN (channel-%d) read rc = %d\n",
 						g_tmp_chip->vusbin_adc_channel, rc);
 		return 0;

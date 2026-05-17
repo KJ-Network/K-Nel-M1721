@@ -387,7 +387,7 @@ static int qpnp_vadc_hc_check_conversion_status(struct qpnp_vadc_chip *vadc,
 				QPNP_VADC_HC1_CONV_TIME_MAX_US);
 		count++;
 		if (count > retry) {
-			pr_err("retry error exceeded\n");
+			pr_debug("retry error exceeded\n");
 			rc = qpnp_vadc_status_debug(vadc);
 			if (rc < 0)
 				pr_err("VADC disable failed with %d\n", rc);
@@ -2137,7 +2137,7 @@ recalibrate:
 					QPNP_VADC_CONV_TIME_MAX);
 			count++;
 			if (count > QPNP_VADC_ERR_COUNT) {
-				pr_err("retry error exceeded\n");
+				pr_debug("retry error exceeded\n");
 				rc = qpnp_vadc_status_debug(vadc);
 				if (rc < 0)
 					pr_err("VADC disable failed\n");
