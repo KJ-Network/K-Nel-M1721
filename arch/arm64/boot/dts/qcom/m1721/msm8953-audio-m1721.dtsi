@@ -32,6 +32,10 @@
 };
 
 &soc {
+	msm_cdc_pinctrl_quin {
+		status = "disabled";
+	};
+
 	cdc_quat_mi2s_gpios: msm_cdc_pinctrl_quat {
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
@@ -45,7 +49,7 @@
 
 	int_codec: sound {
 		status = "ok";
-		ompatible = "qcom,msm8952-audio-codec";
+		compatible = "qcom,msm8952-audio-codec";
 		qcom,model = "msm8953-snd-card-mtp";
 		reg = <0xc051000 0x4>,
 			<0xc051004 0x4>,
@@ -75,9 +79,7 @@
 			"MIC BIAS External", "Secondary Mic",
 			"AMIC1", "MIC BIAS External",
 			"AMIC2", "MIC BIAS External2",
-			"AMIC3", "MIC BIAS External",
-			"WSA_SPK OUT", "VDD_WSA_SWITCH",
-			"SpkrMono WSA_IN", "WSA_SPK OUT";
+			"AMIC3", "MIC BIAS External";
 
 		asoc-cpu = <&dai_pri_auxpcm>,
 				<&dai_mi2s0>, <&dai_mi2s1>,
@@ -127,6 +129,7 @@
 		/delete-property/ msm-vdd-wsa-switch-supply;
 		/delete-property/ qcom,msm-vdd-wsa-switch-voltage;
 		/delete-property/ qcom,msm-vdd-wsa-switch-current;
+		/delete-property/ qcom,quin-mi2s-gpios;
 	};
 
 	qcom,msm-adsp-loader {
