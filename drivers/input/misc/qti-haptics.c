@@ -65,6 +65,7 @@ enum haptics_custom_effect_param {
 #define HAP_SC_DET_TIME_US		1000000
 #define FF_EFFECT_COUNT_MAX		32
 #define HAP_DISABLE_DELAY_USEC		1000
+#define HAPTICS_DEVICE_MINOR		0
 
 /* haptics module register definitions */
 #define REG_HAP_STATUS1			0x0A
@@ -212,6 +213,8 @@ struct qti_hap_chip {
 	struct hrtimer			stop_timer;
 	struct hrtimer			hap_disable_timer;
 	struct dentry			*hap_debugfs;
+	struct class			*hap_class;
+	int				queried_effect_id;
 	spinlock_t			bus_lock;
 	ktime_t				last_sc_time;
 	int				play_irq;
@@ -1885,6 +1888,46 @@ static int create_effect_debug_files(struct qti_hap_effect *effect,
 	return 0;
 }
 
+static struct qti_hap_chip *g_hap_chip;
+
+static ssize_t primitive_duration_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	struct qti_hap_chip *chip = g_hap_chip;
+	struct qti_hap_play_info play = {0};
+	int i, length_us = 0;
+
+	if (!chip)
+		return -ENODEV;
+
+	for (i = 0; i < chip->effects_count; i++) {
+		if (chip->predefined[i].id == chip->queried_effect_id) {
+			play.effect = &chip->predefined[i];
+			get_play_length(&play, &length_us);
+			break;
+		}
+	}
+	return scnprintf(buf, PAGE_SIZE, "%d\n", length_us);
+}
+
+static ssize_t primitive_duration_store(struct class *class,
+		struct class_attribute *attr, const char *buf, size_t count)
+{
+	struct qti_hap_chip *chip = g_hap_chip;
+	int ret, id;
+
+	if (!chip)
+		return -ENODEV;
+
+	ret = kstrtoint(buf, 10, &id);
+	if (ret)
+		return ret;
+	chip->queried_effect_id = id;
+	return count;
+}
+
+static CLASS_ATTR_RW(primitive_duration);
+
 static int qti_haptics_add_debugfs(struct qti_hap_chip *chip)
 {
 	struct dentry *hap_dir, *effect_dir;
@@ -2025,6 +2068,13 @@ static int qti_haptics_probe(struct platform_device *pdev)
 	if (rc < 0)
 		dev_dbg(chip->dev, "create debugfs failed, rc=%d\n", rc);
 #endif
+
+	g_hap_chip = chip;
+	chip->hap_class = class_create(THIS_MODULE, "qcom-haptics");
+	if (!IS_ERR(chip->hap_class))
+		class_create_file(chip->hap_class,
+				&class_attr_primitive_duration.attr);
+
 	return 0;
 
 destroy_ff:
@@ -2035,6 +2085,13 @@ destroy_ff:
 static int qti_haptics_remove(struct platform_device *pdev)
 {
 	struct qti_hap_chip *chip = dev_get_drvdata(&pdev->dev);
+
+	if (chip->hap_class && !IS_ERR(chip->hap_class)) {
+		class_remove_file(chip->hap_class,
+				&class_attr_primitive_duration.attr);
+		class_destroy(chip->hap_class);
+	}
+	g_hap_chip = NULL;
 
 #ifdef CONFIG_DEBUG_FS
 	debugfs_remove_recursive(chip->hap_debugfs);
