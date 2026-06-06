@@ -363,6 +363,7 @@
 			interrupts = <90 8>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&cs35l35_default &cs35l35_irq_default>;
+			cirrus,boost-ctl-millivolt = <8500>;
 			cirrus,audio-channel = <0>;
 			cirrus,boost-ind-nanohenry = <1200>;
 			status = "ok";
