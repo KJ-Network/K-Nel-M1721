@@ -3,6 +3,12 @@ on:
   push:
     tags:
       - "C-*"
+  workflow_dispatch:
+    inputs:
+      localversion:
+        required: true
+        default: "Canary"
+        type: string
 
 jobs:
   build:
@@ -28,7 +34,11 @@ jobs:
       - name: Get Tag Name
         id: get-tag
         run: |
-          echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "TAG_NAME=${{ github.event.inputs.localversion }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Initialize Compilation Environment
         run: |
@@ -38,8 +48,6 @@ jobs:
           
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.get-tag.outputs.TAG_NAME }}
 
       - name: Get Toolchain
         run: |
