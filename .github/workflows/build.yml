@@ -3,17 +3,18 @@ on:
   push:
     tags:
       - "C-*"
+  workflow_dispatch:
+    inputs:
+      localversion:
+        required: true
+        default: "Canary"
+        type: string
 
 jobs:
   build:
     name: Build KosminorKernel M1721 by ${{ github.actor }}
     runs-on: ubuntu-24.04
     steps:
-
-      - name: Set Beijing Timezone
-        uses: szenius/set-timezone@v1.2
-        with:
-          timezoneLinux: "Asia/Shanghai"
 
       - name: Set SWAP To 5GiB
         uses: pierotofy/set-swap-space@master
@@ -28,18 +29,21 @@ jobs:
       - name: Get Tag Name
         id: get-tag
         run: |
-          echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "TAG_NAME=${{ github.event.inputs.localversion }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=$(echo $GITHUB_REF | cut -d'/' -f3)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Initialize Compilation Environment
         run: |
           sudo apt-get update
           sudo apt-get install git automake build-essential bc python3 -y
-          echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
           
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
-          ref: ${{ steps.get-tag.outputs.TAG_NAME }}
+          fetch-depth: 1
 
       - name: Get Toolchain
         run: |
@@ -56,7 +60,7 @@ jobs:
           LATEST_TAG=$(git tag -l | sort -V | tail -n1)
           git checkout $LATEST_TAG
           cd ..
-          sed -i -e '$a\'$'\n''CONFIG_KSU=y' arch/arm64/configs/m1721_kosminor_defconfig
+          sed -i -e '$a\'$'\n''CONFIG_KSU=y\nCONFIG_KSU_TAMPER_SYSCALL_TABLE=y\nCONFIG_KSU_THRONE_TRACKER_ALWAYS_THREADED=y' arch/arm64/configs/m1721_kosminor_defconfig
 
       - name: Build Kernel
         run: |

@@ -54,3 +54,11 @@
     __has_builtin(__builtin_sub_overflow)
 #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
 #endif
+
+/*
+ * __builtin_sscanf is not suppprted by clang under version 17.
+ * In order to compile __builtin_sscanf, we need to define it to sscanf.
+ */
+#if !defined(__clang__) || __clang_major__ < 17
+#define __builtin_sscanf sscanf
+#endif
