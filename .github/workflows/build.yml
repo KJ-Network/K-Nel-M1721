@@ -16,11 +16,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
 
-      - name: Set Beijing Timezone
-        uses: szenius/set-timezone@v1.2
-        with:
-          timezoneLinux: "Asia/Shanghai"
-
       - name: Set SWAP To 5GiB
         uses: pierotofy/set-swap-space@master
         with:
@@ -44,10 +39,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install git automake build-essential bc python3 -y
-          echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
           
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Get Toolchain
         run: |
