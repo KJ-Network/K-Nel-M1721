@@ -42,6 +42,13 @@ static int32_t msm_camera_qup_i2c_rxdata(
 			.buf   = rxdata,
 		},
 	};
+
+	if (!dev_client->client->adapter ||
+	    !dev_client->client->adapter->algo) {
+		pr_err("%s: adapter not initialized\n", __func__);
+		return -ENODEV;
+	}
+
 	rc = i2c_transfer(dev_client->client->adapter, msgs, 2);
 	if (rc < 0)
 		S_I2C_DBG("msm_camera_qup_i2c_rxdata failed 0x%x\n", saddr);
@@ -62,6 +69,13 @@ static int32_t msm_camera_qup_i2c_txdata(
 			.buf = txdata,
 		 },
 	};
+
+	if (!dev_client->client->adapter ||
+	    !dev_client->client->adapter->algo) {
+		pr_err("%s: adapter not initialized\n", __func__);
+		return -ENODEV;
+	}
+
 	rc = i2c_transfer(dev_client->client->adapter, msg, 1);
 	if (rc < 0)
 		S_I2C_DBG("msm_camera_qup_i2c_txdata faild 0x%x\n", saddr);
