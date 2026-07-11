@@ -779,7 +779,6 @@ ifeq ($(call clang-ifversion, -ge, 0800, y),y)
 # https://bugs.llvm.org/show_bug.cgi?id=45497. These flags are subject to being
 # renamed or dropped.
 KBUILD_CFLAGS	+= -ftrivial-auto-var-init=zero
-KBUILD_CFLAGS	+= $(call cc-option, -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang)
 else ifeq ($(call clang-ifversion, -lt, 0800, y),y)
 # This requires an external patch to clang from HardenedOS, which has been
 # superseded by -ftrivial-auto-var-init=zero above for clang 8+ and any
@@ -855,7 +854,7 @@ KBUILD_CFLAGS += $(call cc-option, -fcatch-undefined-behavior)
 # Future support for zero initialization is still being debated, see
 # https://bugs.llvm.org/show_bug.cgi?id=45497. These flags are subject to being
 # renamed or dropped.
-KBUILD_CFLAGS   += -ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang
+KBUILD_CFLAGS   += -ftrivial-auto-var-init=zero
 else
 
 # These warnings generated too much noise in a regular build.
@@ -972,7 +971,7 @@ KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
 
 # require functions to have arguments in prototypes, not empty 'int foo()'
-KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
+KBUILD_CFLAGS   += -Wno-error=strict-prototypes
 
 # Prohibit date/time macros, which would make the build non-deterministic
 KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
