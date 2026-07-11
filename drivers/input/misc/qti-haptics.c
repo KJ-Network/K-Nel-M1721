@@ -2073,7 +2073,7 @@ static int qti_haptics_probe(struct platform_device *pdev)
 	chip->hap_class = class_create(THIS_MODULE, "qcom-haptics");
 	if (!IS_ERR(chip->hap_class))
 		class_create_file(chip->hap_class,
-				&class_attr_primitive_duration.attr);
+				&class_attr_primitive_duration);
 
 	return 0;
 
@@ -2088,7 +2088,7 @@ static int qti_haptics_remove(struct platform_device *pdev)
 
 	if (chip->hap_class && !IS_ERR(chip->hap_class)) {
 		class_remove_file(chip->hap_class,
-				&class_attr_primitive_duration.attr);
+				&class_attr_primitive_duration);
 		class_destroy(chip->hap_class);
 	}
 	g_hap_chip = NULL;
