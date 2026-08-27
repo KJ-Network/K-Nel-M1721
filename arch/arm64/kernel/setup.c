@@ -28,6 +28,7 @@
 #include <linux/console.h>
 #include <linux/cache.h>
 #include <linux/bootmem.h>
+#include <linux/string.h>
 #include <linux/screen_info.h>
 #include <linux/init.h>
 #include <linux/kexec.h>
@@ -101,6 +102,47 @@ static struct resource mem_res[] = {
  * The recorded values of x0 .. x3 upon kernel entry.
  */
 u64 __cacheline_aligned boot_args[4];
+
+#ifdef CONFIG_MACH_MEIZU_M1721
+/*
+ * Android imports androidboot.* command-line entries before starting the
+ * framework.  Keep both spellings here: androidboot.* is the supported
+ * Android interface, while the ro.* entry helps older vendor init trees.
+ */
+static void __init force_boot_property(const char *key)
+{
+	char *param;
+	char *value_end;
+	size_t key_len = strlen(key);
+
+	for (param = strstr(boot_command_line, key); param;
+	     param = strstr(param + key_len, key)) {
+		if (param != boot_command_line && param[-1] != ' ')
+			continue;
+
+		value_end = strchr(param + key_len, ' ');
+		if (!value_end)
+			value_end = param + strlen(param);
+
+		/* Replace the complete value, including an existing nonzero value. */
+		memmove(param + key_len + 1, value_end,
+			strlen(value_end) + 1);
+		param[key_len] = '0';
+		return;
+	}
+
+	if (boot_command_line[0])
+		strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
+	strlcat(boot_command_line, key, COMMAND_LINE_SIZE);
+	strlcat(boot_command_line, "0", COMMAND_LINE_SIZE);
+}
+
+static void __init force_treble_disabled(void)
+{
+	force_boot_property("androidboot.treble.enable=");
+	force_boot_property("ro.treble.enable=");
+}
+#endif
 
 void __init smp_setup_processor_id(void)
 {
@@ -267,6 +309,9 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	setup_machine_fdt(__fdt_pointer);
+#ifdef CONFIG_MACH_MEIZU_M1721
+	force_treble_disabled();
+#endif
 
 	parse_early_param();
 
