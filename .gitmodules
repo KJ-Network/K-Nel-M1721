@@ -6,3 +6,6 @@
 	path = KernelSU
 	url = https://github.com/backslashxx/KernelSU.git
 	branch = master
+[submodule "utils"]
+	path = utils
+	url = https://github.com/tomxi1997/lxc-docker-support-for-android.git
